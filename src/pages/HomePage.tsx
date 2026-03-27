@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Snowflake, Factory, Truck } from 'lucide-react';
-import { BIHLogo } from '@/components/logo/BIHLogo';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { SEO } from '@/components/seo/SEO';
@@ -57,10 +56,24 @@ export function HomePage() {
         jsonLd={organizationJsonLd}
       />
 
-      {/* ===== HERO 首屏 ===== */}
-      <section className="relative bg-bih-navy overflow-hidden">
-        {/* 背景装饰：倾斜线条 */}
-        <div className="absolute inset-0 opacity-5">
+      {/* ===== HERO 首屏：视频背景 ===== */}
+      <section className="relative overflow-hidden min-h-[600px] lg:min-h-[700px] bg-bih-navy">
+        {/* 背景视频：自动播放、静音、循环 — 将 hero-video.mp4 放入 public/ 即可启用 */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/hero-video.mp4" type="video/mp4" />
+        </video>
+
+        {/* 深色遮罩：保证文字可读性，视频上方叠加 */}
+        <div className="absolute inset-0 bg-bih-navy/70" />
+
+        {/* 倾斜线条装饰 */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
           <div
             className="absolute inset-0"
             style={{
@@ -70,11 +83,9 @@ export function HomePage() {
           />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-4 py-24 lg:px-8 lg:py-36">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 lg:px-8 lg:py-36">
           <div className="flex flex-col items-center text-center">
-            <BIHLogo size="lg" variant="navy" showTagline={true} />
-
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <Badge variant="yellow">
                 <ShieldCheck className="mr-1 h-3 w-3" />
                 CE Certified
@@ -89,7 +100,7 @@ export function HomePage() {
               {t('hero.headline')}
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg text-white/70 lg:text-xl">
+            <p className="mt-6 max-w-2xl text-lg text-white/80 lg:text-xl">
               {t('hero.subheadline')}
             </p>
 

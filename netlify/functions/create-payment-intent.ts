@@ -7,7 +7,7 @@ import Stripe from 'stripe';
 import { calculateTax } from '../../src/utils/canadianTax';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia',
+  apiVersion: '2026-03-25.dahlia',
 });
 
 export const handler: Handler = async (event) => {
@@ -16,7 +16,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { items, provinceCode, shippingCad, customerEmail } = JSON.parse(event.body || '{}');
+    const { items, provinceCode, shippingCad, customerEmail, customerName } = JSON.parse(event.body || '{}');
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'items required' }) };
@@ -37,6 +37,15 @@ export const handler: Handler = async (event) => {
     // Stripe 金额单位为分（cents）
     const totalCents = Math.round(totalCad * 100);
 
+    // 商品摘要 JSON — 供 Stripe Webhook → QuickBooks 同步使用
+    const itemsJson = JSON.stringify(
+      items.map((item: { name?: string; priceCad: number; quantity: number }) => ({
+        name: item.name || 'Heavy Equipment Attachment',
+        qty: item.quantity,
+        unitPrice: item.priceCad,
+      }))
+    );
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalCents,
       currency: 'cad',
@@ -48,6 +57,10 @@ export const handler: Handler = async (event) => {
         shipping: shippingAmount.toFixed(2),
         provinceCode: provinceCode || 'ON',
         itemCount: items.length.toString(),
+        // QuickBooks 同步所需字段
+        customerEmail: customerEmail || '',
+        customerName: customerName || '',
+        itemsJson: itemsJson.slice(0, 500), // Stripe metadata 单字段限 500 字符
       },
     });
 
