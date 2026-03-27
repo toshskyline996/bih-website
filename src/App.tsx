@@ -13,6 +13,9 @@ const ProductDetailPage = lazy(() => import('@/pages/ProductDetailPage').then(m 
 const AboutPage = lazy(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage })))
 const SteelSpecPage = lazy(() => import('@/pages/SteelSpecPage').then(m => ({ default: m.SteelSpecPage })))
 const ContactPage = lazy(() => import('@/pages/ContactPage').then(m => ({ default: m.ContactPage })))
+const CartPage = lazy(() => import('@/pages/CartPage'))
+const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'))
+const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage'))
 
 /* ── 路由切换时自动滚回顶部 ──
  * 扫码用户从产品列表点进 PDP 再返回时，不会停在页面中间
@@ -61,6 +64,9 @@ function App() {
               <Route path="/about" element={<AboutPage />} />
               <Route path="/steel-spec" element={<SteelSpecPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/order/success" element={<OrderSuccessPage />} />
             </Routes>
           </Suspense>
         </main>

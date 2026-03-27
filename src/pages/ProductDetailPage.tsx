@@ -9,7 +9,10 @@ import {
   Camera,
   MessageSquare,
   CheckCircle,
+  ShoppingCart,
+  Check,
 } from 'lucide-react';
+import { useCartStore } from '@/store/cartStore';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -35,6 +38,15 @@ export function ProductDetailPage() {
   const rawProduct = slug ? getProductBySlug(slug) : undefined;
   const product = rawProduct ? getLocalizedProduct(rawProduct, i18n.language) : undefined;
   const [quoteOpen, setQuoteOpen] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const addItem = useCartStore((s) => s.addItem);
+
+  function handleAddToCart() {
+    if (!rawProduct) return;
+    addItem(rawProduct);
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
+  }
 
   /* 404 处理 */
   if (!product) {
@@ -203,17 +215,43 @@ export function ProductDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* CTA — Get Quote */}
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button variant="primary" size="lg" className="flex-1" onClick={() => setQuoteOpen(true)}>
+              {/* 价格展示 */}
+              {rawProduct && (
+                <div className="mt-6 rounded-xl bg-bih-navy/5 border border-bih-navy/10 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-bih-gray-500 mb-1">Starting From</p>
+                  <p className="text-3xl font-black text-bih-navy">
+                    ${rawProduct.priceCad.toLocaleString('en-CA')}
+                    <span className="text-sm font-bold text-bih-gray-500 ml-1">CAD</span>
+                  </p>
+                  <p className="text-xs text-bih-gray-400 mt-1">+ shipping & applicable taxes · Custom configs available</p>
+                </div>
+              )}
+
+              {/* CTA — Add to Cart + Get Quote */}
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={handleAddToCart}
+                  className={`flex-1 inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${
+                    addedToCart
+                      ? 'bg-green-500 text-white'
+                      : 'bg-bih-yellow text-bih-navy hover:bg-yellow-400'
+                  }`}
+                >
+                  {addedToCart ? (
+                    <><Check className="h-5 w-5" /> Added to Cart</>
+                  ) : (
+                    <><ShoppingCart className="h-5 w-5" /> Add to Cart</>
+                  )}
+                </button>
+                <Button variant="outline" size="lg" onClick={() => setQuoteOpen(true)}>
                   <MessageSquare className="mr-2 h-5 w-5" />
                   {t('pdp.getQuote')}
                 </Button>
-                <Button variant="outline" size="lg">
-                  <Download className="mr-2 h-5 w-5" />
-                  {t('pdp.downloadSpecs')}
-                </Button>
               </div>
+              <Button variant="ghost" size="sm" className="mt-2 w-full">
+                <Download className="mr-2 h-4 w-4" />
+                {t('pdp.downloadSpecs')}
+              </Button>
 
               {/* 证书下载 */}
               <div className="mt-6 flex flex-wrap gap-3">

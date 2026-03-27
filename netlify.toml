@@ -2,6 +2,10 @@
   command = "npm run build"
   publish = "dist"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # SPA 路由 — 所有路径回退到 index.html
 [[redirects]]
   from = "/*"

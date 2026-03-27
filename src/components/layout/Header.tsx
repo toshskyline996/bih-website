@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Menu, X, Globe } from 'lucide-react';
+import { Menu, X, Globe, ShoppingCart } from 'lucide-react';
 import { BIHLogo } from '@/components/logo/BIHLogo';
 import { Button } from '@/components/ui/Button';
+import { useCartStore } from '@/store/cartStore';
 
 /**
  * Header 导航栏
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 export function Header() {
   const { t, i18n } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const totalItems = useCartStore((s) => s.totalItems());
 
   /* 语言切换：EN ↔ FR */
   const toggleLang = () => {
@@ -61,6 +63,16 @@ export function Header() {
             <Globe className="h-4 w-4" />
             {i18n.language === 'en' ? 'FR' : 'EN'}
           </button>
+
+          {/* 购物车图标 */}
+          <Link to="/cart" className="relative text-white/80 hover:text-bih-yellow transition-colors" aria-label="Cart">
+            <ShoppingCart className="h-5 w-5" />
+            {totalItems > 0 && (
+              <span className="absolute -top-2 -right-2 bg-bih-yellow text-bih-navy text-[10px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                {totalItems > 9 ? '9+' : totalItems}
+              </span>
+            )}
+          </Link>
 
           {/* 主 CTA */}
           <Button variant="primary" size="sm">

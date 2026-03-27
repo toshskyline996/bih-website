@@ -38,6 +38,8 @@ export interface Product {
   descriptionFr: string;
   features: string[];
   featuresFr: string[];
+  priceCad: number;                      // 定价（CAD 整数）
+  weightKg: number;                      // 运费计算用重量（代表性中间值）
 }
 
 export const categoryLabels: Record<ProductCategory, string> = {
@@ -114,6 +116,8 @@ export const products: Product[] = [
       'Couteaux latéraux boulonnés remplaçables',
       'Plusieurs options de largeur disponibles',
     ],
+    priceCad: 3800,
+    weightKg: 750,
   },
   {
     id: 'bkt-hd-02',
@@ -163,6 +167,8 @@ export const products: Product[] = [
       'Protections d\'angle renforcées',
       'Compatible avec les systèmes d\'attache rapide OEM majeurs',
     ],
+    priceCad: 7200,
+    weightKg: 2000,
   },
   {
     id: 'bkt-mini-01',
@@ -208,6 +214,8 @@ export const products: Product[] = [
       'Compatible avec toutes les configurations d\'axes de mini-excavatrice',
       'Plusieurs options de largeur et de dents',
     ],
+    priceCad: 1450,
+    weightKg: 120,
   },
 
   // ===== RAKE / SKELETON BUCKETS =====
@@ -253,6 +261,8 @@ export const products: Product[] = [
       'Cadre structural Q355 — soudures inspectées',
       'Dents boulonnées remplaçables disponibles',
     ],
+    priceCad: 3100,
+    weightKg: 600,
   },
   {
     id: 'rak-02',
@@ -296,6 +306,8 @@ export const products: Product[] = [
       'Supports de point d\'articulation robustes',
       'Options d\'espacement des barreaux personnalisées',
     ],
+    priceCad: 5800,
+    weightKg: 1250,
   },
 
   // ===== HYDRAULIC BREAKERS =====
@@ -343,6 +355,8 @@ export const products: Product[] = [
       'Plusieurs options de pointe d\'outil (pointerolle, burin, émoussé)',
       'Boîtier acoustique disponible pour les travaux urbains',
     ],
+    priceCad: 5200,
+    weightKg: 380,
   },
   {
     id: 'brk-02',
@@ -388,6 +402,8 @@ export const products: Product[] = [
       'Système anti-tir à vide',
       'Kit sous-marin en option',
     ],
+    priceCad: 11500,
+    weightKg: 1500,
   },
 
   // ===== QUICK COUPLERS =====
@@ -435,6 +451,8 @@ export const products: Product[] = [
       'Compatible avec les configurations d\'axes standard de toutes les marques',
       'Certification de sécurité anti-chute',
     ],
+    priceCad: 3200,
+    weightKg: 330,
   },
 
   // ===== HYDRAULIC THUMBS =====
@@ -480,6 +498,8 @@ export const products: Product[] = [
       'Vérin hydraulique robuste avec soupape de décharge',
       'Options de montage soudé ou par axe',
     ],
+    priceCad: 2700,
+    weightKg: 250,
   },
 
   // ===== RIPPERS =====
@@ -525,6 +545,8 @@ export const products: Product[] = [
       'Conçu pour briser la ligne de gel lors des hivers canadiens',
       'Compatible avec les montages standard par axe et attache rapide',
     ],
+    priceCad: 2900,
+    weightKg: 625,
   },
 
   // ===== EARTH AUGERS =====
@@ -576,6 +598,8 @@ export const products: Product[] = [
       'Rallonges disponibles pour le forage profond',
       'Rotation inversée pour l\'extraction dans les sols collants',
     ],
+    priceCad: 4200,
+    weightKg: 400,
   },
 ];
 
