@@ -1,0 +1,16 @@
+{
+  "name": "Boreal Iron Heavy — Northern Heavy Equipment",
+  "short_name": "BIH",
+  "description": "Factory-direct heavy equipment attachments. Q355 HSLA steel with Hardox 450 wear parts.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#003366",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
