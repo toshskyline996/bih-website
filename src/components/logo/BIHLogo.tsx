@@ -1,14 +1,18 @@
 /**
  * BIH Logo — Boreal Iron Heavy
  *
- * 品牌识别：
- *   图标  → 黄色对角右上箭头（品牌核心标识符）
- *   字标  → BIH 粗体 + BOREAL IRON HEAVY 副标
+ * 品牌识别系统 v2：
+ *   图标  → 圆角方块徽章（navy/yellow 双色）+ ↗ 方向性箭头
+ *   字标  → BIH 超粗体 + BOREAL IRON HEAVY 小型大写副标
  *
- * 尺寸：
- *   sm → Header（图标 + BIH，无副标）
- *   md → Footer / 通用（图标 + BIH + 副标）
- *   lg → Hero 首屏（大尺寸全展示）
+ * 尺寸规格：
+ *   sm → Header（32px 图标 + BIH，不显示副标）
+ *   md → Footer / 通用（44px 图标 + BIH + 副标）
+ *   lg → Hero 首屏（64px 图标 + 全展示）
+ *
+ * 变体说明：
+ *   navy  → 深蓝底 × 黄色箭头 × 白色文字（用于深色背景）
+ *   yellow → 黄色底 × 深蓝箭头 × 深蓝文字（用于浅色背景）
  */
 export const BIHLogo = ({
   className = '',
@@ -22,29 +26,36 @@ export const BIHLogo = ({
   showTagline?: boolean;
 }) => {
   /* ── 色彩 ── */
-  const bihColor = variant === 'navy' ? '#FFFFFF' : '#003366';
-  const subColor = variant === 'navy' ? 'rgba(255,255,255,0.60)' : 'rgba(0,51,102,0.55)';
+  const isNavy = variant === 'navy';
+  const badgeBg    = isNavy ? '#003366' : '#FFC500';
+  const arrowFill  = isNavy ? '#FFC500' : '#003366';
+  const bihColor   = isNavy ? '#FFFFFF' : '#003366';
+  const subColor   = isNavy ? 'rgba(255,255,255,0.60)' : 'rgba(0,51,102,0.55)';
 
   /* ── 尺寸系统 ── */
   const cfg = {
-    sm: { iconSize: 28, bihClass: 'text-xl',    gap: 'gap-2.5', showSub: false },
-    md: { iconSize: 36, bihClass: 'text-2xl',   gap: 'gap-3',   showSub: true  },
-    lg: { iconSize: 52, bihClass: 'text-[2.6rem]', gap: 'gap-4', showSub: true },
+    sm: { iconSize: 32, bihPx: 18, subShow: false, gap: 10 },
+    md: { iconSize: 44, bihPx: 24, subShow: true,  gap: 12 },
+    lg: { iconSize: 64, bihPx: 36, subShow: true,  gap: 18 },
   }[size];
 
-  /*
-   * 对角箭头图标 (↗)
-   * 参考 Gemini 品牌素材：平面风格，指向右上角
-   * viewBox 48×48，用 polygon 组合：主干 + 箭头三角
-   */
   const s = cfg.iconSize;
 
   return (
     <div
-      className={`inline-flex items-center ${cfg.gap} ${className}`}
+      className={`inline-flex items-center ${className}`}
+      style={{ gap: cfg.gap }}
       aria-label="Boreal Iron Heavy"
     >
-      {/* ── 箭头图标 ── */}
+      {/* ────────────────────────────────────────
+          图标徽章
+          viewBox 48×48：
+            背景 → 圆角矩形 rx=10，品牌色
+            箭头 → 由 7 点多边形构成 ↗ 方向箭头
+              - 箭杆：左边 (6,35)→(28,12)，右边 (14,40)→(36,17)
+              - 箭头：(24,5)→(43,5)→(43,24) 等腰直角三角形
+              - 两侧均衡，杆宽约 9.4px，箭头 19×19px
+      ─────────────────────────────────────────── */}
       <svg
         width={s}
         height={s}
@@ -54,54 +65,66 @@ export const BIHLogo = ({
         aria-hidden="true"
         style={{ flexShrink: 0 }}
       >
-        {/*
-         * ↗ 箭头：仿 bih-icon-flat.png 的品牌箭头
-         *
-         * 路径说明（顺时针）：
-         *   (4,32)  → 箭杆尾部左上角
-         *   (4,36)  → 尾部缺口外凸点（形成尾部 V 形凹槽）
-         *   (12,44) → 尾部右下角
-         *   (38,18) → 箭杆右侧顶端（进入箭头区域）
-         *   (48,24) → 箭头右侧基底
-         *   (48,0)  → 右上角箭尖
-         *   (24,0)  → 箭头左侧顶端
-         *   (30,6)  → 箭头内角（与箭杆左侧连接）
-         *   CLOSE   → 回到 (4,32)，左侧边与右侧边平行 ✓
-         */}
-        <path
-          d="M4,32 L4,36 L12,44 L38,18 L48,24 L48,0 L24,0 L30,6 Z"
-          fill="#FFC500"
+        {/* 背景徽章 */}
+        <rect width="48" height="48" rx="10" fill={badgeBg} />
+
+        {/* ↗ 方向箭头
+            坐标（顺时针）：
+              (6,35)  箭杆左侧尾端
+              (28,12) 箭杆左侧顶端
+              (24,5)  箭头左翼外角（向左展开）
+              (43,5)  箭尖（右上角）
+              (43,24) 箭头下翼外角
+              (36,17) 箭杆右侧顶端
+              (14,40) 箭杆右侧尾端
+        */}
+        <polygon
+          points="6,35 28,12 24,5 43,5 43,24 36,17 14,40"
+          fill={arrowFill}
         />
       </svg>
 
       {/* ── 文字区域 ── */}
-      <div className="flex flex-col leading-none">
-        {/* BIH 主字标 */}
+      <div className="flex flex-col leading-none" style={{ gap: 3 }}>
+        {/* BIH 主字标：Inter ExtraBold，紧凑字距 */}
         <span
-          className={`${cfg.bihClass} font-black uppercase tracking-wide`}
-          style={{ color: bihColor, fontFamily: "'Impact', 'Arial Black', sans-serif" }}
+          style={{
+            color: bihColor,
+            fontSize: cfg.bihPx,
+            fontFamily: "'Inter', 'Roboto', system-ui, sans-serif",
+            fontWeight: 800,
+            letterSpacing: '-0.03em',
+            lineHeight: 1,
+          }}
         >
           BIH
         </span>
 
-        {/* BOREAL IRON HEAVY 副标（md / lg） */}
-        {cfg.showSub && (
+        {/* 副标：小型大写，宽字距 */}
+        {cfg.subShow && (
           <span
-            className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: subColor }}
+            style={{
+              color: subColor,
+              fontSize: 7.5,
+              fontFamily: "'Inter', 'Roboto', system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: '0.20em',
+              textTransform: 'uppercase',
+              lineHeight: 1,
+            }}
           >
             BOREAL IRON HEAVY
           </span>
         )}
       </div>
 
-      {/* showTagline 向后兼容（lg 尺寸右侧扩展标语） */}
+      {/* showTagline：lg 尺寸右侧品牌延伸文案（向后兼容） */}
       {showTagline && size === 'lg' && (
-        <div className="ml-4 border-l border-white/20 pl-4">
-          <span className="block text-[10px] font-bold uppercase tracking-[0.15em] text-yellow-400">
+        <div style={{ marginLeft: 16, paddingLeft: 16, borderLeft: '1px solid rgba(255,255,255,0.20)' }}>
+          <span style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#FFC500' }}>
             Northern Heavy Equipment
           </span>
-          <span className="block text-[9px] text-white/50 tracking-wider">
+          <span style={{ display: 'block', fontSize: 9, color: 'rgba(255,255,255,0.50)', letterSpacing: '0.10em' }}>
             Coast-to-Coast Canada
           </span>
         </div>

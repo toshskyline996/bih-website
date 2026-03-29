@@ -5,7 +5,18 @@
    工程黄 + 深海蓝 = 北美重工业视觉识别
    ============================================ */
 
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
+}
+
 @theme {
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
   /* 品牌主色：工程黄，对标 CAT/Komatsu 行业认知 */
   --color-bih-yellow: #FFC500;
   --color-bih-yellow-dark: #E6B000;

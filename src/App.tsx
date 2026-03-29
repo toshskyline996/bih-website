@@ -16,6 +16,7 @@ const ContactPage = lazy(() => import('@/pages/ContactPage').then(m => ({ defaul
 const CartPage = lazy(() => import('@/pages/CartPage'))
 const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'))
 const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage'))
+const ShowcasePage = lazy(() => import('@/pages/ShowcasePage'))
 
 /* ── 路由切换时自动滚回顶部 ──
  * 扫码用户从产品列表点进 PDP 再返回时，不会停在页面中间
@@ -67,6 +68,7 @@ function App() {
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/order/success" element={<OrderSuccessPage />} />
+              <Route path="/showcase" element={<ShowcasePage />} />
             </Routes>
           </Suspense>
         </main>
