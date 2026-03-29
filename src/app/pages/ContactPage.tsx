@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { products } from '../data/products';
 
 const IL = { fontFamily: "'Inter', sans-serif" };
@@ -27,14 +28,29 @@ const labelStyle = (dark = true) => ({
   fontWeight: 300 as const,
 });
 
+const encode = (data: Record<string, string>) =>
+  Object.keys(data)
+    .map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(data[k]))
+    .join('&');
+
 export function ContactPage({ lang = 'en' }: { lang?: string }) {
   const isFr = lang === 'fr';
+  usePageTitle('Request a Quote', 'Demander un Devis', lang);
   const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', product: '', quantity: '', message: '' });
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    setSubmitting(true);
+    fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: encode({ 'form-name': 'contact-inquiry', ...form }),
+    })
+      .then(() => setSent(true))
+      .catch(() => alert('Submission error — please email info@borealironheavy.ca directly.'))
+      .finally(() => setSubmitting(false));
   };
 
   return (
@@ -67,7 +83,7 @@ export function ContactPage({ lang = 'en' }: { lang?: string }) {
                   {
                     label: isFr ? 'Siège Social' : 'Headquarters',
                     value: 'Boreal Iron Heavy Inc.',
-                    sub: 'borealironheavy.ca',
+                    sub: 'info@borealironheavy.ca',
                   },
                   {
                     label: isFr ? 'Délai de Fabrication' : 'Lead Time',
@@ -120,7 +136,16 @@ export function ContactPage({ lang = 'en' }: { lang?: string }) {
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+                <form
+                  name="contact-inquiry"
+                  method="POST"
+                  data-netlify="true"
+                  data-netlify-honeypot="bot-field"
+                  onSubmit={handleSubmit}
+                  className="flex flex-col gap-8"
+                >
+                  <input type="hidden" name="form-name" value="contact-inquiry" />
+                  <input type="hidden" name="bot-field" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label style={labelStyle(false)}>{isFr ? 'Nom Complet' : 'Full Name'} *</label>
@@ -178,11 +203,12 @@ export function ContactPage({ lang = 'en' }: { lang?: string }) {
                   <div>
                     <button
                       type="submit"
-                      style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.2em', padding: '16px 44px', backgroundColor: '#1a1a1a', color: '#fff', border: 'none', textTransform: 'uppercase', cursor: 'pointer', transition: 'opacity 0.2s' }}
-                      onMouseEnter={e => ((e.target as HTMLElement).style.opacity = '0.8')}
+                      disabled={submitting}
+                      style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.2em', padding: '16px 44px', backgroundColor: submitting ? '#555' : '#1a1a1a', color: '#fff', border: 'none', textTransform: 'uppercase', cursor: submitting ? 'not-allowed' : 'pointer', transition: 'opacity 0.2s' }}
+                      onMouseEnter={e => { if (!submitting) (e.target as HTMLElement).style.opacity = '0.8'; }}
                       onMouseLeave={e => ((e.target as HTMLElement).style.opacity = '1')}
                     >
-                      {isFr ? 'Envoyer la Demande' : 'Submit Inquiry'}
+                      {submitting ? (isFr ? 'Envoi...' : 'Sending...') : (isFr ? 'Envoyer la Demande' : 'Submit Inquiry')}
                     </button>
                     <p style={{ fontSize: '11px', color: '#bbb', fontWeight: 300, marginTop: '12px', letterSpacing: '0.05em' }}>
                       {isFr ? '* Réponse garantie sous 48 heures.' : '* Response guaranteed within 48 business hours.'}

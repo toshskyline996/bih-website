@@ -39,9 +39,19 @@ export function Footer({ lang }: FooterProps) {
           </nav>
         </div>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <p style={{ fontWeight: 300, fontSize: '11px', color: 'rgba(255,255,255,0.22)', letterSpacing: '0.08em' }}>
-            © 2026 Boreal Iron Heavy Inc. — borealironheavy.ca
-          </p>
+          <div className="flex flex-col gap-1">
+            <p style={{ fontWeight: 300, fontSize: '11px', color: 'rgba(255,255,255,0.22)', letterSpacing: '0.08em' }}>
+              © 2026 Boreal Iron Heavy Inc. — borealironheavy.ca
+            </p>
+            <a
+              href="mailto:info@borealironheavy.ca"
+              style={{ fontWeight: 300, fontSize: '11px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textDecoration: 'none', transition: 'color 0.2s' }}
+              onMouseEnter={e => ((e.target as HTMLElement).style.color = 'rgba(255,255,255,0.65)')}
+              onMouseLeave={e => ((e.target as HTMLElement).style.color = 'rgba(255,255,255,0.35)')}
+            >
+              info@borealironheavy.ca
+            </a>
+          </div>
           <p style={{ fontWeight: 300, fontSize: '11px', color: 'rgba(255,255,255,0.18)', letterSpacing: '0.08em' }}>
             Shandong Manufacturing · ISO 9001 · CE · EN 474 · EN 10204-3.1
           </p>

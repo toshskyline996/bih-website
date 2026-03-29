@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const IL = { fontFamily: "'Inter', sans-serif" };
 
@@ -25,6 +26,7 @@ const hardoxSpecs = [
 
 export function SteelSpecPage({ lang = 'en' }: { lang?: string }) {
   const isFr = lang === 'fr';
+  usePageTitle('Steel Specifications — Q355 HSLA + Hardox 450', 'Spécifications Acier — Q355 HSLA + Hardox 450', lang);
 
   return (
     <div style={IL}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { products, categoryLabels, categoryLabelsFr, type ProductCategory } from '../data/products';
 
 const img1 = 'https://images.unsplash.com/photo-1724555959431-a9db1c2fb66f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoeWRyYXVsaWMlMjBidWNrZXQlMjBleGNhdmF0b3IlMjBjb25zdHJ1Y3Rpb24lMjBzaXRlfGVufDF8fHx8MTc3NDc2NTAxOXww&ixlib=rb-4.1.0&q=80&w=1080';
@@ -21,6 +22,7 @@ export function ProductsPage({ lang = 'en' }: { lang?: string }) {
   const [activeCategory, setActiveCategory] = useState<ProductCategory | ''>(initCat);
   const [hovered, setHovered] = useState<string | null>(null);
   const isFr = lang === 'fr';
+  usePageTitle('All Products — Excavator Attachments', 'Tous les Produits — Accessoires Excavateur', lang);
 
   useEffect(() => {
     const cat = searchParams.get('category') as ProductCategory | null;

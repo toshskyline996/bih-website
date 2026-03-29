@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { Link } from 'react-router';
 import { Snowflake, ShieldCheck, Factory, Truck, ArrowRight } from 'lucide-react';
 import { products, categoryLabels, type ProductCategory } from '../data/products';
@@ -65,6 +66,7 @@ const IL = { fontFamily: "'Inter', sans-serif" };
 export function HomePage({ lang = 'en' }: { lang?: string }) {
   const [loaded, setLoaded] = useState(false);
   const isFr = lang === 'fr';
+  usePageTitle('Northern Heavy Equipment', 'Équipement Lourd du Nord', lang);
 
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 80);

@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { Factory, Shield, Wrench, CheckCircle, Award, Globe } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const IL = { fontFamily: "'Inter', sans-serif" };
 
@@ -21,6 +22,7 @@ const qualitySteps = [
 
 export function AboutPage({ lang = 'en' }: { lang?: string }) {
   const isFr = lang === 'fr';
+  usePageTitle('About — 20 Years of Heavy Manufacturing', 'À Propos — 20 Ans de Fabrication Lourde', lang);
 
   return (
     <div style={IL}>
