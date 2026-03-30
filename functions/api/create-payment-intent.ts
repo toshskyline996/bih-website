@@ -101,9 +101,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       { headers: corsHeaders }
     );
   } catch (err) {
-    console.error('create-payment-intent error:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('create-payment-intent error:', msg);
     return Response.json(
-      { error: 'Payment initialization failed. Please try again.' },
+      { error: msg },
       { status: 500, headers: corsHeaders }
     );
   }

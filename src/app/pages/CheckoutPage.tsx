@@ -104,7 +104,10 @@ export function CheckoutPage() {
           customerName: `${shipping.firstName} ${shipping.lastName}`.trim(),
         }),
       });
-      if (!res.ok) throw new Error('Payment initialization failed');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(errBody.error ?? 'Payment initialization failed');
+      }
       const data = await res.json() as {
         clientSecret: string;
         subtotal: number; taxAmount: number; taxName: string;
