@@ -12,5 +12,8 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
-  ]
+  ],
+  "vars": {
+    "QUICKBOOKS_SANDBOX": "true"
+  }
 }
