@@ -15,6 +15,7 @@ export interface WorkerEnv {
   QUICKBOOKS_CLIENT_SECRET: string;
   QUICKBOOKS_REFRESH_TOKEN: string;
   QUICKBOOKS_REALM_ID: string;
+  QUICKBOOKS_SANDBOX?: string;
   MANITOULIN_API_TOKEN?: string;
 }
 

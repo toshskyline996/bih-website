@@ -8,10 +8,16 @@ interface Env {
   QUICKBOOKS_CLIENT_SECRET: string;
   QUICKBOOKS_REFRESH_TOKEN: string;
   QUICKBOOKS_REALM_ID: string;
+  QUICKBOOKS_SANDBOX?: string;
 }
 
 const QBO_TOKEN_URL = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
-const QBO_BASE_URL  = 'https://quickbooks.api.intuit.com/v3/company';
+const QBO_BASE_URL_PROD    = 'https://quickbooks.api.intuit.com/v3/company';
+const QBO_BASE_URL_SANDBOX = 'https://sandbox-quickbooks.api.intuit.com/v3/company';
+
+function getQboBaseUrl(env: Env): string {
+  return env.QUICKBOOKS_SANDBOX === 'true' ? QBO_BASE_URL_SANDBOX : QBO_BASE_URL_PROD;
+}
 
 interface OrderItem {
   productId: string;
@@ -77,12 +83,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     // ── Step 1: 用 refresh_token 换取新 access_token ────────────────────
     const accessToken = await refreshAccessToken(env);
+    const qboBaseUrl = getQboBaseUrl(env);
 
     // ── Step 2: 查找或创建 QBO 客户 ──────────────────────────────────────
-    const customerId = await findOrCreateCustomer(accessToken, env.QUICKBOOKS_REALM_ID, body.customer);
+    const customerId = await findOrCreateCustomer(accessToken, env.QUICKBOOKS_REALM_ID, body.customer, qboBaseUrl);
 
     // ── Step 3: 创建 Sales Receipt ────────────────────────────────────────
-    const receipt = await createSalesReceipt(accessToken, env.QUICKBOOKS_REALM_ID, body, customerId);
+    const receipt = await createSalesReceipt(accessToken, env.QUICKBOOKS_REALM_ID, body, customerId, qboBaseUrl);
 
     return Response.json(
       {
@@ -131,12 +138,13 @@ async function refreshAccessToken(env: Env): Promise<string> {
 async function findOrCreateCustomer(
   token: string,
   realmId: string,
-  customer: RequestBody['customer']
+  customer: RequestBody['customer'],
+  baseUrl: string
 ): Promise<string> {
   const query = encodeURIComponent(
     `SELECT * FROM Customer WHERE PrimaryEmailAddr = '${customer.email}' MAXRESULTS 1`
   );
-  const res = await fetch(`${QBO_BASE_URL}/${realmId}/query?query=${query}&minorversion=65`, {
+  const res = await fetch(`${baseUrl}/${realmId}/query?query=${query}&minorversion=65`, {
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
   });
 
@@ -150,7 +158,7 @@ async function findOrCreateCustomer(
   }
 
   // 客户不存在 — 创建新客户
-  const createRes = await fetch(`${QBO_BASE_URL}/${realmId}/customer?minorversion=65`, {
+  const createRes = await fetch(`${baseUrl}/${realmId}/customer?minorversion=65`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -178,8 +186,8 @@ async function findOrCreateCustomer(
   return created.Customer.Id;
 }
 
-async function resolveItemRefs(token: string, realmId: string): Promise<{ salesItemRef: QboItemRef; shippingItemRef: QboItemRef }> {
-  const items = await listActiveSellableItems(token, realmId);
+async function resolveItemRefs(token: string, realmId: string, baseUrl: string): Promise<{ salesItemRef: QboItemRef; shippingItemRef: QboItemRef }> {
+  const items = await listActiveSellableItems(token, realmId, baseUrl);
   const salesItem = findPreferredItem(items, ['Sales', 'Services']) ?? items[0];
   const shippingItem = findPreferredItem(items, ['Shipping', 'LTL Freight']) ?? salesItem;
 
@@ -189,9 +197,9 @@ async function resolveItemRefs(token: string, realmId: string): Promise<{ salesI
   };
 }
 
-async function listActiveSellableItems(token: string, realmId: string): Promise<QboItem[]> {
+async function listActiveSellableItems(token: string, realmId: string, baseUrl: string): Promise<QboItem[]> {
   const query = encodeURIComponent('SELECT * FROM Item MAXRESULTS 1000');
-  const res = await fetch(`${QBO_BASE_URL}/${realmId}/query?query=${query}&minorversion=65`, {
+  const res = await fetch(`${baseUrl}/${realmId}/query?query=${query}&minorversion=65`, {
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
   });
 
@@ -314,8 +322,8 @@ function buildSalesReceipt(
   return receipt;
 }
 
-async function postSalesReceipt(token: string, realmId: string, receipt: ReturnType<typeof buildSalesReceipt>) {
-  return fetch(`${QBO_BASE_URL}/${realmId}/salesreceipt?minorversion=65`, {
+async function postSalesReceipt(token: string, realmId: string, baseUrl: string, receipt: ReturnType<typeof buildSalesReceipt>) {
+  return fetch(`${baseUrl}/${realmId}/salesreceipt?minorversion=65`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -340,17 +348,18 @@ async function createSalesReceipt(
   token: string,
   realmId: string,
   body: RequestBody,
-  customerId: string
+  customerId: string,
+  baseUrl: string
 ): Promise<{ SalesReceipt: { Id: string; DocNumber: string } }> {
-  const { salesItemRef, shippingItemRef } = await resolveItemRefs(token, realmId);
+  const { salesItemRef, shippingItemRef } = await resolveItemRefs(token, realmId, baseUrl);
   const receipt = buildSalesReceipt(body, customerId, salesItemRef, shippingItemRef);
-  const res = await postSalesReceipt(token, realmId, receipt);
+  const res = await postSalesReceipt(token, realmId, baseUrl, receipt);
 
   if (!res.ok) {
     const err = await res.text();
     if (shouldRetryWithManualTaxLine(err, body.taxAmount)) {
       const fallbackReceipt = buildSalesReceipt(body, customerId, salesItemRef, shippingItemRef, { manualTaxLine: true });
-      const fallbackRes = await postSalesReceipt(token, realmId, fallbackReceipt);
+      const fallbackRes = await postSalesReceipt(token, realmId, baseUrl, fallbackReceipt);
       if (fallbackRes.ok) {
         return fallbackRes.json() as Promise<{ SalesReceipt: { Id: string; DocNumber: string } }>;
       }
