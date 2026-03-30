@@ -1,9 +1,3 @@
-[build]
-  command = "npm run build"
-  publish = "dist"
-
-# SPA 路由 — 所有路径回退到 index.html
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Migrated to Cloudflare Pages
+# SPA routing handled via public/_redirects
+# Build: npm run build | Publish: dist

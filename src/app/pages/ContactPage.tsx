@@ -28,10 +28,7 @@ const labelStyle = (dark = true) => ({
   fontWeight: 300 as const,
 });
 
-const encode = (data: Record<string, string>) =>
-  Object.keys(data)
-    .map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(data[k]))
-    .join('&');
+const WEB3FORMS_KEY = import.meta.env.VITE_WEB3FORMS_KEY as string;
 
 export function ContactPage({ lang = 'en' }: { lang?: string }) {
   const isFr = lang === 'fr';
@@ -43,12 +40,18 @@ export function ContactPage({ lang = 'en' }: { lang?: string }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    fetch('/', {
+    fetch('https://api.web3forms.com/submit', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: encode({ 'form-name': 'contact-inquiry', ...form }),
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_KEY,
+        subject: `BIH Quote Request — ${form.name}${form.company ? ' / ' + form.company : ''}`,
+        from_name: 'BIH Website',
+        ...form,
+      }),
     })
-      .then(() => setSent(true))
+      .then((r) => r.json())
+      .then((r) => { if (r.success) setSent(true); else throw new Error(r.message); })
       .catch(() => alert('Submission error — please email info@borealironheavy.ca directly.'))
       .finally(() => setSubmitting(false));
   };
@@ -136,16 +139,7 @@ export function ContactPage({ lang = 'en' }: { lang?: string }) {
                   </button>
                 </div>
               ) : (
-                <form
-                  name="contact-inquiry"
-                  method="POST"
-                  data-netlify="true"
-                  data-netlify-honeypot="bot-field"
-                  onSubmit={handleSubmit}
-                  className="flex flex-col gap-8"
-                >
-                  <input type="hidden" name="form-name" value="contact-inquiry" />
-                  <input type="hidden" name="bot-field" />
+                <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label style={labelStyle(false)}>{isFr ? 'Nom Complet' : 'Full Name'} *</label>
