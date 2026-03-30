@@ -12,7 +12,8 @@ const ContactPage = lazy(() => import('./pages/ContactPage').then(m => ({ defaul
 const QuoteBuilderPage   = lazy(() => import('./pages/QuoteBuilderPage').then(m => ({ default: m.QuoteBuilderPage })));
 const CartPage           = lazy(() => import('./pages/CartPage').then(m => ({ default: m.CartPage })));
 const CheckoutPage       = lazy(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
-const OrderSuccessPage   = lazy(() => import('./pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
+const OrderSuccessPage      = lazy(() => import('./pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
+const CompatibilityPage     = lazy(() => import('./pages/CompatibilityPage').then(m => ({ default: m.CompatibilityPage })));
 
 const PageLoader = () => <div style={{ minHeight: '60vh', backgroundColor: '#111' }} />;
 
@@ -32,6 +33,7 @@ export default function App() {
             { path: 'about', element: <Suspense fallback={<PageLoader />}><AboutPage lang={lang} /></Suspense> },
             { path: 'steel-spec', element: <Suspense fallback={<PageLoader />}><SteelSpecPage lang={lang} /></Suspense> },
             { path: 'contact', element: <Suspense fallback={<PageLoader />}><ContactPage lang={lang} /></Suspense> },
+            { path: 'compatibility',  element: <Suspense fallback={<PageLoader />}><CompatibilityPage lang={lang} /></Suspense> },
             { path: 'quote-builder',  element: <Suspense fallback={<PageLoader />}><QuoteBuilderPage /></Suspense> },
             { path: 'cart',           element: <Suspense fallback={<PageLoader />}><CartPage /></Suspense> },
             { path: 'checkout',       element: <Suspense fallback={<PageLoader />}><CheckoutPage /></Suspense> },
