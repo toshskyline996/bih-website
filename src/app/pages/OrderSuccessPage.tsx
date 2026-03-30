@@ -8,6 +8,7 @@ export function OrderSuccessPage() {
 
   const [qboDoc, setQboDoc]     = useState<string | null>(null);
   const [synced, setSynced]     = useState<boolean | null>(null);  // null = loading
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // 从 sessionStorage 读取订单元数据，完成 QBO 同步
   useEffect(() => {
@@ -31,12 +32,22 @@ export function OrderSuccessPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stripePaymentIntentId: piId, ...meta }),
     })
-      .then((r) => r.json())
+      .then(async (r) => {
+        const data = await r.json() as { qboDocNumber?: string; error?: string; detail?: string };
+        if (!r.ok) {
+          throw new Error(data.detail || data.error || 'QBO sync failed');
+        }
+        return data;
+      })
       .then((data: { qboDocNumber?: string }) => {
         if (data.qboDocNumber) setQboDoc(data.qboDocNumber);
+        setSyncError(null);
         setSynced(true);
       })
-      .catch(() => setSynced(false))
+      .catch((err: unknown) => {
+        setSyncError(err instanceof Error ? err.message : 'QBO sync failed');
+        setSynced(false);
+      })
       .finally(() => sessionStorage.removeItem('bih-order-meta'));
   }, [piId]);
 
@@ -88,9 +99,16 @@ export function OrderSuccessPage() {
               />
             )}
             {synced === false && (
-              <p className="text-xs text-gray-600">
-                QBO sync pending — your order is fully recorded in Stripe.
-              </p>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-600">
+                  QBO sync pending — your order is fully recorded in Stripe.
+                </p>
+                {syncError && (
+                  <p className="text-xs text-red-400">
+                    {syncError}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>

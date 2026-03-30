@@ -42,6 +42,18 @@ interface RequestBody {
   };
 }
 
+interface QboItem {
+  Id: string;
+  Name: string;
+  Type?: string;
+  Active?: boolean;
+}
+
+interface QboItemRef {
+  value: string;
+  name: string;
+}
+
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -51,6 +63,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   try {
     const body: RequestBody = await request.json();
+
+    if (!env.QUICKBOOKS_CLIENT_ID || !env.QUICKBOOKS_CLIENT_SECRET || !env.QUICKBOOKS_REFRESH_TOKEN || !env.QUICKBOOKS_REALM_ID) {
+      throw new Error('Missing QuickBooks runtime configuration');
+    }
+
+    if (!body?.stripePaymentIntentId || !body.customer?.email || !body.items?.length || !body.shippingAddress) {
+      return Response.json(
+        { error: 'Missing required QBO sync payload fields' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
     // ── Step 1: 用 refresh_token 换取新 access_token ────────────────────
     const accessToken = await refreshAccessToken(env);
@@ -71,8 +94,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   } catch (err) {
     // QBO 同步失败不应阻断用户体验 — 记录日志，返回 partial success
     console.error('qbo-sync error:', err);
+    const detail = err instanceof Error ? err.message : 'Unknown QBO sync error';
     return Response.json(
-      { error: 'QBO sync failed — order still recorded in Stripe', qboTxnId: null },
+      { error: 'QBO sync failed — order still recorded in Stripe', detail, qboTxnId: null },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -140,8 +164,59 @@ async function findOrCreateCustomer(
     }),
   });
 
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    throw new Error(`QBO customer creation failed: ${err}`);
+  }
+
   const created = await createRes.json() as { Customer: { Id: string } };
+
+  if (!created.Customer?.Id) {
+    throw new Error('QBO customer creation failed: missing Customer Id');
+  }
+
   return created.Customer.Id;
+}
+
+async function resolveItemRefs(token: string, realmId: string): Promise<{ salesItemRef: QboItemRef; shippingItemRef: QboItemRef }> {
+  const items = await listActiveSellableItems(token, realmId);
+  const salesItem = findPreferredItem(items, ['Sales', 'Services']) ?? items[0];
+  const shippingItem = findPreferredItem(items, ['Shipping', 'LTL Freight']) ?? salesItem;
+
+  return {
+    salesItemRef: { value: salesItem.Id, name: salesItem.Name },
+    shippingItemRef: { value: shippingItem.Id, name: shippingItem.Name },
+  };
+}
+
+async function listActiveSellableItems(token: string, realmId: string): Promise<QboItem[]> {
+  const query = encodeURIComponent('SELECT * FROM Item MAXRESULTS 1000');
+  const res = await fetch(`${QBO_BASE_URL}/${realmId}/query?query=${query}&minorversion=65`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`QBO item lookup failed: ${err}`);
+  }
+
+  const data = await res.json() as { QueryResponse?: { Item?: QboItem[] } };
+  const items = (data.QueryResponse?.Item ?? []).filter((item) => item.Active !== false && isSellableItem(item));
+
+  if (!items.length) {
+    throw new Error('QBO item lookup failed: no active sellable items found in company');
+  }
+
+  return items;
+}
+
+function isSellableItem(item: QboItem): boolean {
+  return item.Type === 'Service' || item.Type === 'NonInventory' || item.Type === 'Inventory';
+}
+
+function findPreferredItem(items: QboItem[], names: string[]): QboItem | undefined {
+  const normalizedNames = names.map((name) => name.toLowerCase());
+  return items.find((item) => normalizedNames.includes(item.Name.toLowerCase()));
 }
 
 // ─── 创建 Sales Receipt ────────────────────────────────────────────────────
@@ -151,6 +226,7 @@ async function createSalesReceipt(
   body: RequestBody,
   customerId: string
 ): Promise<{ SalesReceipt: { Id: string; DocNumber: string } }> {
+  const { salesItemRef, shippingItemRef } = await resolveItemRefs(token, realmId);
   const lines = body.items.map((item, idx) => ({
     Id: String(idx + 1),
     LineNum: idx + 1,
@@ -160,7 +236,7 @@ async function createSalesReceipt(
     SalesItemLineDetail: {
       Qty: item.qty,
       UnitPrice: item.priceCad,
-      ItemRef: { value: '1', name: 'Sales' },  // QBO 通用品目
+      ItemRef: salesItemRef,
     },
   }));
 
@@ -175,7 +251,7 @@ async function createSalesReceipt(
       SalesItemLineDetail: {
         Qty: 1,
         UnitPrice: body.shipping,
-        ItemRef: { value: '2', name: 'Shipping' },
+        ItemRef: shippingItemRef,
       },
     });
   }
