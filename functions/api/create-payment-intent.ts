@@ -61,8 +61,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     }
 
     const taxInfo = getTaxInfo(province);
-    const taxAmount = Math.round(subtotal * taxInfo.rate * 100) / 100;
     const shipping = Math.max(0, Number(shippingCad) || 0);
+    // 加拿大税法：运费同样计税（HST/GST/PST 适用于含运费的总额）
+    const taxAmount = Math.round((subtotal + shipping) * taxInfo.rate * 100) / 100;
     const total = subtotal + taxAmount + shipping;
 
     // 初始化 Stripe — stripe v17+ 原生支持 Cloudflare Workers
@@ -101,10 +102,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       { headers: corsHeaders }
     );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('create-payment-intent error:', msg);
+    console.error('create-payment-intent error:', err instanceof Error ? err.message : err);
     return Response.json(
-      { error: msg },
+      { error: 'Payment initialization failed. Please try again.' },
       { status: 500, headers: corsHeaders }
     );
   }
