@@ -30,3 +30,4 @@ deploy-*.zip
 !.dev.vars.example
 .env*
 !.env.example
+!.env.production
