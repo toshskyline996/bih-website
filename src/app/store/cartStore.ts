@@ -55,7 +55,21 @@ export const useCartStore = create<CartStore>()(
 
       clearCart: () => set({ items: [] }),
     }),
-    { name: 'bih-cart' }
+    {
+      name: 'bih-cart',
+      // 清理 localStorage 中字段不完整的旧条目，防止 undefined 崩溃
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.items = state.items.filter(
+            (i) =>
+              !!i.productId &&
+              typeof i.name === 'string' &&
+              typeof i.priceCad === 'number' &&
+              typeof i.weightKg === 'number'
+          );
+        }
+      },
+    }
   )
 );
 

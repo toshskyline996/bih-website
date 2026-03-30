@@ -58,13 +58,13 @@ export function CartPage() {
                 {/* 黄色方块 icon 占位 */}
                 <div className="w-16 h-16 rounded-lg bg-[#FFC500]/10 border border-[#FFC500]/30 flex items-center justify-center shrink-0">
                   <span className="text-[#FFC500] text-2xl font-bold">
-                    {item.name.charAt(0)}
+                    {(item.name ?? 'Item').charAt(0)}
                   </span>
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-semibold text-sm leading-tight line-clamp-2">
-                    {item.name}
+                    {item.name ?? 'Unknown Item'}
                   </p>
                   <p className="text-[#FFC500] font-bold mt-1">
                     {fmt(item.priceCad)} <span className="text-gray-500 font-normal text-xs">/unit</span>
