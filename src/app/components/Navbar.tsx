@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
+import { ShoppingCart } from 'lucide-react';
 import { BIHLogoMark } from './BIHLogo';
+import { useCartStore, selectTotalItems } from '../store/cartStore';
 
 interface NavbarProps {
   lang: string;
@@ -44,7 +46,7 @@ export function Navbar({ lang, setLang }: NavbarProps) {
     >
       <div className="max-w-[1400px] mx-auto px-8 md:px-16 flex items-center justify-between h-20">
         {/* Logo */}
-        <Link to="/" className="flex-shrink-0">
+        <Link to="/" className="shrink-0">
           <BIHLogoMark color={isHome && !scrolled ? '#ffffff' : '#1a1a1a'} width={70} />
         </Link>
 
@@ -76,6 +78,9 @@ export function Navbar({ lang, setLang }: NavbarProps) {
 
         {/* Right Actions */}
         <div className="hidden md:flex items-center gap-4">
+          {/* Cart Icon */}
+          <CartBadge isLight={isHome && !scrolled} />
+
           {/* Lang Toggle */}
           <button
             onClick={() => setLang(isFr ? 'en' : 'fr')}
@@ -119,6 +124,7 @@ export function Navbar({ lang, setLang }: NavbarProps) {
 
         {/* Mobile Hamburger */}
         <div className="md:hidden flex items-center gap-4">
+          <CartBadge isLight={isHome && !scrolled} />
           <button
             onClick={() => setLang(isFr ? 'en' : 'fr')}
             style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', letterSpacing: '0.15em', color: isHome && !scrolled ? '#ffffff' : '#555555', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}
@@ -161,5 +167,28 @@ export function Navbar({ lang, setLang }: NavbarProps) {
         </div>
       </div>
     </header>
+  );
+}
+
+// ─── Cart badge component ─────────────────────────────────────────────────────
+function CartBadge({ isLight }: { isLight: boolean }) {
+  const totalItems = useCartStore(selectTotalItems);
+  const color = isLight ? '#ffffff' : '#111111';
+  return (
+    <Link to="/cart" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', color }}>
+      <ShoppingCart size={20} strokeWidth={1.5} />
+      {totalItems > 0 && (
+        <span style={{
+          position: 'absolute', top: '-6px', right: '-8px',
+          minWidth: '16px', height: '16px', borderRadius: '8px',
+          backgroundColor: '#FFC500', color: '#003366',
+          fontSize: '9px', fontWeight: 700, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+          padding: '0 3px',
+        }}>
+          {totalItems > 99 ? '99+' : totalItems}
+        </span>
+      )}
+    </Link>
   );
 }

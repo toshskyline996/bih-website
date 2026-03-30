@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { ArrowLeft, CheckCircle, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ChevronRight, ShoppingCart, Check } from 'lucide-react';
 import { getProductBySlug } from '../data/products';
+import { useCartStore } from '../store/cartStore';
 
 const img1 = 'https://images.unsplash.com/photo-1724555959431-a9db1c2fb66f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoeWRyYXVsaWMlMjBidWNrZXQlMjBleGNhdmF0b3IlMjBjb25zdHJ1Y3Rpb24lMjBzaXRlfGVufDF8fHx8MTc3NDc2NTAxOXww&ixlib=rb-4.1.0&q=80&w=1080';
 const img2 = 'https://images.unsplash.com/photo-1730584475795-f0be0efd606e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGVlbCUyMHdlbGRpbmclMjBzcGFya3MlMjBpbmR1c3RyaWFsJTIwbWFudWZhY3R1cmluZ3xlbnwxfHx8fDE3NzQ3NjUwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080';
@@ -20,7 +21,16 @@ export function ProductDetailPage({ lang = 'en' }: { lang?: string }) {
   const product = getProductBySlug(slug || '');
   const [formSent, setFormSent] = useState(false);
   const [inquiry, setInquiry] = useState({ name: '', company: '', email: '', message: '' });
+  const [addedToCart, setAddedToCart] = useState(false);
   const isFr = lang === 'fr';
+  const addItem = useCartStore((s) => s.addItem);
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    addItem({ productId: product.id, name: product.name, priceCad: product.priceCad, weightKg: product.weightKg });
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
+  };
 
   if (!product) {
     return (
@@ -131,15 +141,41 @@ export function ProductDetailPage({ lang = 'en' }: { lang?: string }) {
                 </div>
               </div>
 
+              {/* Price + Add to Cart */}
+              <div className="mb-6 flex items-baseline gap-3">
+                <span style={{ fontSize: '28px', fontWeight: 900, color: '#1a1a1a', letterSpacing: '-0.02em' }}>
+                  {product.priceCad.toLocaleString('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })}
+                </span>
+                <span style={{ fontSize: '11px', color: '#999', fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase' }}>CAD · ex. tax &amp; shipping</span>
+              </div>
+
               {/* CTA */}
-              <a
-                href="#inquire"
-                style={{ display: 'inline-block', fontSize: '12px', fontWeight: 500, letterSpacing: '0.18em', padding: '14px 36px', backgroundColor: '#1a1a1a', color: '#fff', textTransform: 'uppercase', textDecoration: 'none', marginRight: '12px', transition: 'opacity 0.2s' }}
-                onMouseEnter={e => ((e.target as HTMLElement).style.opacity = '0.8')}
-                onMouseLeave={e => ((e.target as HTMLElement).style.opacity = '1')}
-              >
-                {isFr ? 'Demander un Devis' : 'Request Quote'}
-              </a>
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <button
+                  onClick={handleAddToCart}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                    fontSize: '12px', fontWeight: 500, letterSpacing: '0.18em',
+                    padding: '14px 28px',
+                    backgroundColor: addedToCart ? '#16a34a' : '#FFC500',
+                    color: addedToCart ? '#fff' : '#003366',
+                    textTransform: 'uppercase', border: 'none', cursor: 'pointer',
+                    transition: 'all 0.3s',
+                  }}
+                >
+                  {addedToCart
+                    ? <><Check size={14} /> {isFr ? 'Ajouté!' : 'Added!'}</>
+                    : <><ShoppingCart size={14} /> {isFr ? 'Ajouter au Panier' : 'Add to Cart'}</>}
+                </button>
+                <a
+                  href="#inquire"
+                  style={{ display: 'inline-block', fontSize: '12px', fontWeight: 500, letterSpacing: '0.18em', padding: '14px 28px', backgroundColor: '#1a1a1a', color: '#fff', textTransform: 'uppercase', textDecoration: 'none', transition: 'opacity 0.2s' }}
+                  onMouseEnter={e => ((e.target as HTMLElement).style.opacity = '0.8')}
+                  onMouseLeave={e => ((e.target as HTMLElement).style.opacity = '1')}
+                >
+                  {isFr ? 'Demander un Devis' : 'Request Quote'}
+                </a>
+              </div>
               <Link to="/contact" style={{ display: 'inline-block', fontSize: '12px', fontWeight: 400, letterSpacing: '0.15em', color: '#555', textTransform: 'uppercase', textDecoration: 'none', borderBottom: '1px solid #ccc', paddingBottom: '2px' }}>
                 {isFr ? 'Nous Contacter' : 'Contact Us'}
               </Link>

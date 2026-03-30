@@ -2,7 +2,7 @@
  * 一次性 QuickBooks OAuth2 授权脚本
  *
  * 用途：获取 QUICKBOOKS_REFRESH_TOKEN 和 QUICKBOOKS_REALM_ID
- *       获取后存入 Netlify 环境变量，此脚本只需运行一次
+ *       获取后存入 Cloudflare Pages 环境变量，此脚本只需运行一次
  *
  * 前置步骤：
  *   1. 登录 https://developer.intuit.com → 你的 App → Keys & OAuth
@@ -101,7 +101,7 @@ const server = http.createServer(async (req, res) => {
       throw new Error(JSON.stringify(tokens));
     }
 
-    console.log('\n✅ 授权成功！请将以下值存入 Netlify 环境变量：\n');
+    console.log('\n✅ 授权成功！请将以下值存入 Cloudflare Pages 环境变量：\n');
     console.log('━'.repeat(60));
     console.log(`QUICKBOOKS_REALM_ID     = ${realmId}`);
     console.log(`QUICKBOOKS_REFRESH_TOKEN = ${tokens.refresh_token}`);
@@ -112,7 +112,7 @@ const server = http.createServer(async (req, res) => {
     res.end(`
       <html><body style="font-family:monospace;padding:2rem;background:#003366;color:#FFC500">
         <h2>✅ QuickBooks 授权成功</h2>
-        <p>请回到终端查看环境变量，并存入 Netlify。</p>
+        <p>请回到终端查看环境变量，并存入 Cloudflare Pages Dashboard。</p>
         <p><b>Realm ID:</b> ${realmId}</p>
         <p><b>Refresh Token:</b> ${tokens.refresh_token?.slice(0, 20)}...</p>
       </body></html>

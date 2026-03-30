@@ -9,7 +9,10 @@ const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage').then(m 
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const SteelSpecPage = lazy(() => import('./pages/SteelSpecPage').then(m => ({ default: m.SteelSpecPage })));
 const ContactPage = lazy(() => import('./pages/ContactPage').then(m => ({ default: m.ContactPage })));
-const QuoteBuilderPage = lazy(() => import('./pages/QuoteBuilderPage').then(m => ({ default: m.QuoteBuilderPage })));
+const QuoteBuilderPage   = lazy(() => import('./pages/QuoteBuilderPage').then(m => ({ default: m.QuoteBuilderPage })));
+const CartPage           = lazy(() => import('./pages/CartPage').then(m => ({ default: m.CartPage })));
+const CheckoutPage       = lazy(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
+const OrderSuccessPage   = lazy(() => import('./pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
 
 const PageLoader = () => <div style={{ minHeight: '60vh', backgroundColor: '#111' }} />;
 
@@ -29,7 +32,10 @@ export default function App() {
             { path: 'about', element: <Suspense fallback={<PageLoader />}><AboutPage lang={lang} /></Suspense> },
             { path: 'steel-spec', element: <Suspense fallback={<PageLoader />}><SteelSpecPage lang={lang} /></Suspense> },
             { path: 'contact', element: <Suspense fallback={<PageLoader />}><ContactPage lang={lang} /></Suspense> },
-            { path: 'quote-builder', element: <Suspense fallback={<PageLoader />}><QuoteBuilderPage /></Suspense> },
+            { path: 'quote-builder',  element: <Suspense fallback={<PageLoader />}><QuoteBuilderPage /></Suspense> },
+            { path: 'cart',           element: <Suspense fallback={<PageLoader />}><CartPage /></Suspense> },
+            { path: 'checkout',       element: <Suspense fallback={<PageLoader />}><CheckoutPage /></Suspense> },
+            { path: 'order/success',  element: <Suspense fallback={<PageLoader />}><OrderSuccessPage /></Suspense> },
             { path: '*', element: <Suspense fallback={<PageLoader />}><HomePage lang={lang} /></Suspense> },
           ],
         },
