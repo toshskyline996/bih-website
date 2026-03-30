@@ -219,14 +219,13 @@ function findPreferredItem(items: QboItem[], names: string[]): QboItem | undefin
   return items.find((item) => normalizedNames.includes(item.Name.toLowerCase()));
 }
 
-// ─── 创建 Sales Receipt ────────────────────────────────────────────────────
-async function createSalesReceipt(
-  token: string,
-  realmId: string,
+function buildSalesReceipt(
   body: RequestBody,
-  customerId: string
-): Promise<{ SalesReceipt: { Id: string; DocNumber: string } }> {
-  const { salesItemRef, shippingItemRef } = await resolveItemRefs(token, realmId);
+  customerId: string,
+  salesItemRef: QboItemRef,
+  shippingItemRef: QboItemRef,
+  options?: { manualTaxLine?: boolean }
+) {
   const lines = body.items.map((item, idx) => ({
     Id: String(idx + 1),
     LineNum: idx + 1,
@@ -240,7 +239,6 @@ async function createSalesReceipt(
     },
   }));
 
-  // 运费作为单独一行
   if (body.shipping > 0) {
     lines.push({
       Id: String(lines.length + 1),
@@ -256,13 +254,41 @@ async function createSalesReceipt(
     });
   }
 
+  if (options?.manualTaxLine && body.taxAmount > 0) {
+    lines.push({
+      Id: String(lines.length + 1),
+      LineNum: lines.length + 1,
+      Amount: body.taxAmount,
+      DetailType: 'SalesItemLineDetail',
+      Description: body.taxName,
+      SalesItemLineDetail: {
+        Qty: 1,
+        UnitPrice: body.taxAmount,
+        ItemRef: salesItemRef,
+      },
+    });
+  }
+
   const addr = body.shippingAddress;
-  const receipt = {
+  const receipt: {
+    BillEmail: { Address: string };
+    CustomerMemo: { value: string };
+    CustomerRef: { value: string };
+    Line: typeof lines;
+    PrivateNote: string;
+    ShipAddr: {
+      City: string;
+      Country: string;
+      CountrySubDivisionCode: string;
+      Line1: string;
+      PostalCode: string;
+    };
+    TxnTaxDetail?: {
+      TotalTax: number;
+    };
+  } = {
     CustomerRef: { value: customerId },
     Line: lines,
-    TxnTaxDetail: {
-      TotalTax: body.taxAmount,
-    },
     BillEmail: { Address: body.customer.email },
     ShipAddr: {
       Line1: addr.street,
@@ -279,7 +305,17 @@ async function createSalesReceipt(
     CustomerMemo: { value: 'Thank you for your order. Our team will contact you within 1–2 business days to confirm your order details.' },
   };
 
-  const res = await fetch(`${QBO_BASE_URL}/${realmId}/salesreceipt?minorversion=65`, {
+  if (!options?.manualTaxLine && body.taxAmount > 0) {
+    receipt.TxnTaxDetail = {
+      TotalTax: body.taxAmount,
+    };
+  }
+
+  return receipt;
+}
+
+async function postSalesReceipt(token: string, realmId: string, receipt: ReturnType<typeof buildSalesReceipt>) {
+  return fetch(`${QBO_BASE_URL}/${realmId}/salesreceipt?minorversion=65`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -288,9 +324,41 @@ async function createSalesReceipt(
     },
     body: JSON.stringify(receipt),
   });
+}
+
+function shouldRetryWithManualTaxLine(errorText: string, taxAmount: number): boolean {
+  if (taxAmount <= 0) {
+    return false;
+  }
+
+  const normalized = errorText.toLowerCase();
+  return normalized.includes('tax') || normalized.includes('txntaxdetail') || normalized.includes('taxcode');
+}
+
+// ─── 创建 Sales Receipt ────────────────────────────────────────────────────
+async function createSalesReceipt(
+  token: string,
+  realmId: string,
+  body: RequestBody,
+  customerId: string
+): Promise<{ SalesReceipt: { Id: string; DocNumber: string } }> {
+  const { salesItemRef, shippingItemRef } = await resolveItemRefs(token, realmId);
+  const receipt = buildSalesReceipt(body, customerId, salesItemRef, shippingItemRef);
+  const res = await postSalesReceipt(token, realmId, receipt);
 
   if (!res.ok) {
     const err = await res.text();
+    if (shouldRetryWithManualTaxLine(err, body.taxAmount)) {
+      const fallbackReceipt = buildSalesReceipt(body, customerId, salesItemRef, shippingItemRef, { manualTaxLine: true });
+      const fallbackRes = await postSalesReceipt(token, realmId, fallbackReceipt);
+      if (fallbackRes.ok) {
+        return fallbackRes.json() as Promise<{ SalesReceipt: { Id: string; DocNumber: string } }>;
+      }
+
+      const fallbackErr = await fallbackRes.text();
+      throw new Error(`QBO Sales Receipt creation failed: ${err}; fallback failed: ${fallbackErr}`);
+    }
+
     throw new Error(`QBO Sales Receipt creation failed: ${err}`);
   }
 
