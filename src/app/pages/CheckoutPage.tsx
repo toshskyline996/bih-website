@@ -362,8 +362,6 @@ function PaymentStep({ orderMeta }: { orderMeta: OrderMeta }) {
   const stripe   = useStripe();
   const elements = useElements();
   const navigate  = useNavigate();
-  const clearCart = useCartStore((s) => s.clearCart);
-
   const [paying, setPaying]   = useState(false);
   const [error, setError]     = useState('');
 
@@ -385,19 +383,6 @@ function PaymentStep({ orderMeta }: { orderMeta: OrderMeta }) {
     }
 
     if (paymentIntent?.status === 'succeeded') {
-      // 在后台同步 QBO（失败不阻断跳转）
-      try {
-        await fetch('/api/qbo-sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            stripePaymentIntentId: paymentIntent.id,
-            ...orderMeta,
-          }),
-        });
-      } catch { /* QBO 失败静默处理，订单已在 Stripe 记录 */ }
-
-      clearCart();
       navigate(`/order/success?pi=${paymentIntent.id}`, { replace: true });
     }
     setPaying(false);

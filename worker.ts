@@ -7,6 +7,7 @@
 import { onRequestPost as shippingPost, onRequestOptions as shippingOpts } from './functions/api/shipping-rates';
 import { onRequestPost as paymentPost, onRequestOptions as paymentOpts } from './functions/api/create-payment-intent';
 import { onRequestPost as qboPost, onRequestOptions as qboOpts } from './functions/api/qbo-sync';
+import { onRequestPost as webhookPost, onRequestOptions as webhookOpts } from './functions/api/stripe-webhook';
 
 export interface WorkerEnv {
   ASSETS: Fetcher;
@@ -15,6 +16,7 @@ export interface WorkerEnv {
   QUICKBOOKS_CLIENT_SECRET: string;
   QUICKBOOKS_REFRESH_TOKEN: string;
   QUICKBOOKS_REALM_ID: string;
+  STRIPE_WEBHOOK_SECRET: string;
   QUICKBOOKS_SANDBOX?: string;
   MANITOULIN_API_TOKEN?: string;
 }
@@ -56,6 +58,12 @@ export default {
     if (pathname === '/api/qbo-sync') {
       if (method === 'OPTIONS') return qboOpts(c);
       if (method === 'POST')    return qboPost(c);
+      return new Response(null, { status: 405 });
+    }
+
+    if (pathname === '/api/stripe-webhook') {
+      if (method === 'OPTIONS') return webhookOpts(c);
+      if (method === 'POST')    return webhookPost(c);
       return new Response(null, { status: 405 });
     }
 

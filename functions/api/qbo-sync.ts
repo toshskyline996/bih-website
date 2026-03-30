@@ -282,6 +282,7 @@ function buildSalesReceipt(
     BillEmail: { Address: string };
     CustomerMemo: { value: string };
     CustomerRef: { value: string };
+    GlobalTaxCalculation?: string;
     Line: typeof lines;
     PrivateNote: string;
     ShipAddr: {
@@ -313,7 +314,9 @@ function buildSalesReceipt(
     CustomerMemo: { value: 'Thank you for your order. Our team will contact you within 1–2 business days to confirm your order details.' },
   };
 
-  if (!options?.manualTaxLine && body.taxAmount > 0) {
+  if (options?.manualTaxLine) {
+    receipt.GlobalTaxCalculation = 'NotApplicable';
+  } else if (body.taxAmount > 0) {
     receipt.TxnTaxDetail = {
       TotalTax: body.taxAmount,
     };
@@ -340,7 +343,16 @@ function shouldRetryWithManualTaxLine(errorText: string, taxAmount: number): boo
   }
 
   const normalized = errorText.toLowerCase();
-  return normalized.includes('tax') || normalized.includes('txntaxdetail') || normalized.includes('taxcode');
+  return (
+    normalized.includes('tax') ||
+    normalized.includes('txntaxdetail') ||
+    normalized.includes('taxcode') ||
+    normalized.includes('gst') ||
+    normalized.includes('hst') ||
+    normalized.includes('pst') ||
+    normalized.includes('rate') ||
+    normalized.includes('6000')
+  );
 }
 
 // ─── 创建 Sales Receipt ────────────────────────────────────────────────────

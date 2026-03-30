@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { CheckCircle2, Clock, Mail, Package, ArrowRight } from 'lucide-react';
+import { useCartStore } from '../store/cartStore';
 
 export function OrderSuccessPage() {
   const [params] = useSearchParams();
   const piId = params.get('pi') ?? '';
+  const clearCart = useCartStore((s) => s.clearCart);
 
   const [qboDoc, setQboDoc]     = useState<string | null>(null);
   const [synced, setSynced]     = useState<boolean | null>(null);  // null = loading
   const [syncError, setSyncError] = useState<string | null>(null);
+
+  // 清空购物车 — 在成功页挂载后执行，避免 CheckoutPage 的购物车守卫拦截导航
+  useEffect(() => { clearCart(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 从 sessionStorage 读取订单元数据，完成 QBO 同步
   useEffect(() => {
