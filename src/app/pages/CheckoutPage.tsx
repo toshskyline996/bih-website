@@ -105,8 +105,8 @@ export function CheckoutPage() {
         }),
       });
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(errBody.error ?? 'Payment initialization failed');
+        const errBody = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+        throw new Error(errBody.detail || errBody.error || 'Payment initialization failed');
       }
       const data = await res.json() as {
         clientSecret: string;

@@ -44,6 +44,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const body: RequestBody = await request.json();
     const { items, shippingCad, province, customerEmail, customerName, orderNote } = body;
 
+    if (!env.STRIPE_SECRET_KEY) {
+      throw new Error('Missing Stripe runtime configuration');
+    }
+
     if (!items?.length || !province || !customerEmail) {
       return Response.json({ error: 'Missing required fields' }, { status: 400, headers: corsHeaders });
     }
@@ -103,8 +107,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     );
   } catch (err) {
     console.error('create-payment-intent error:', err instanceof Error ? err.message : err);
+    const detail = err instanceof Error ? err.message : 'Unknown payment initialization error';
     return Response.json(
-      { error: 'Payment initialization failed. Please try again.' },
+      { error: 'Payment initialization failed. Please try again.', detail },
       { status: 500, headers: corsHeaders }
     );
   }
