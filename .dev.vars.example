@@ -1,0 +1,9 @@
+# 本地 wrangler dev 测试用 — 复制为 .dev.vars 并填入真实值
+# 对应 Cloudflare Dashboard 里的 Variables and secrets
+
+STRIPE_SECRET_KEY=sk_test_...
+QUICKBOOKS_CLIENT_ID=
+QUICKBOOKS_CLIENT_SECRET=
+QUICKBOOKS_REFRESH_TOKEN=
+QUICKBOOKS_REALM_ID=
+# MANITOULIN_API_TOKEN=   # 可选

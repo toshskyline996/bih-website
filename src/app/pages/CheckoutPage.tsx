@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -57,11 +57,6 @@ export function CheckoutPage() {
   const [orderMeta, setOrderMeta]     = useState<object | null>(null);
   const [fetching, setFetching]       = useState(false);
   const [error, setError]             = useState('');
-
-  if (items.length === 0) {
-    navigate('/cart', { replace: true });
-    return null;
-  }
 
   const taxInfo   = getTaxInfo(shipping.province);
   const taxAmount = selectedRate
@@ -148,9 +143,27 @@ export function CheckoutPage() {
     }
   }, [items, selectedRate, shipping, totalWeight]);
 
-  const isStep1Valid =
+  const isStep1Valid = !!(
     shipping.firstName && shipping.lastName && shipping.email &&
-    shipping.street && shipping.city && shipping.province && shipping.postal;
+    shipping.street && shipping.city && shipping.province && shipping.postal
+  );
+
+  // 表单填完且邮编 >= 5 位时自动获取运费，省去手动点击
+  useEffect(() => {
+    const cleanPostal = shipping.postal.replace(/\s/g, '');
+    if (cleanPostal.length >= 5 && isStep1Valid && rates.length === 0 && !fetching && items.length > 0) {
+      handleGetRates();
+    }
+    // 仅由邮编或省份变更触发；handleGetRates via useCallback 稳定故省略
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shipping.postal, shipping.province]);
+
+  // 购物车为空时跳转 — 必须在所有 Hooks 之后
+  useEffect(() => {
+    if (items.length === 0) navigate('/cart', { replace: true });
+  }, [items.length, navigate]);
+
+  if (items.length === 0) return null;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-12 px-4">
