@@ -14,6 +14,7 @@ const CartPage           = lazy(() => import('./pages/CartPage').then(m => ({ de
 const CheckoutPage       = lazy(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
 const OrderSuccessPage      = lazy(() => import('./pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
 const CompatibilityPage     = lazy(() => import('./pages/CompatibilityPage').then(m => ({ default: m.CompatibilityPage })));
+const FactoryPage           = lazy(() => import('./pages/FactoryPage').then(m => ({ default: m.FactoryPage })));
 
 const PageLoader = () => <div style={{ minHeight: '60vh', backgroundColor: '#111' }} />;
 
@@ -38,6 +39,7 @@ export default function App() {
             { path: 'cart',           element: <Suspense fallback={<PageLoader />}><CartPage /></Suspense> },
             { path: 'checkout',       element: <Suspense fallback={<PageLoader />}><CheckoutPage /></Suspense> },
             { path: 'order/success',  element: <Suspense fallback={<PageLoader />}><OrderSuccessPage /></Suspense> },
+            { path: 'factory',       element: <Suspense fallback={<PageLoader />}><FactoryPage lang={lang} /></Suspense> },
             { path: '*', element: <Suspense fallback={<PageLoader />}><HomePage lang={lang} /></Suspense> },
           ],
         },

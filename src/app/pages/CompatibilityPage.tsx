@@ -86,6 +86,40 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
         </div>
       </section>
 
+      {/* ── Brand Quick-Select ── */}
+      <section style={{ backgroundColor: '#161616', padding: '32px 0', borderBottom: '1px solid #222' }}>
+        <div className="max-w-[1200px] mx-auto px-6 md:px-12">
+          <p style={{ fontSize: '10px', letterSpacing: '0.25em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', fontWeight: 300, marginBottom: '16px' }}>
+            {isFr ? 'Sélection rapide par marque' : 'Quick select by brand'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {brandData.map((b) => {
+              const isActive = selectedBrand?.brand === b.brand;
+              return (
+                <button
+                  key={b.brand}
+                  onClick={() => { setSelectedBrand(isActive ? null : b); setSelectedModel(null); setSearch(''); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '7px',
+                    padding: '8px 16px',
+                    backgroundColor: isActive ? '#fff' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${isActive ? '#fff' : 'rgba(255,255,255,0.1)'}`,
+                    color: isActive ? '#111' : 'rgba(255,255,255,0.7)',
+                    fontSize: '11px', fontWeight: isActive ? 700 : 300,
+                    letterSpacing: '0.1em', textTransform: 'uppercase',
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                >
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: b.color, flexShrink: 0 }} />
+                  {b.shortName}
+                  <span style={{ fontSize: '9px', opacity: 0.5, marginLeft: '2px' }}>{b.models.length}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* ── Finder Tool ── */}
       <section style={{ backgroundColor: '#1a1a1a', padding: '48px 0', borderBottom: '1px solid #2a2a2a' }}>
         <div className="max-w-[1200px] mx-auto px-6 md:px-12">

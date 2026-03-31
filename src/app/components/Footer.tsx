@@ -10,6 +10,7 @@ export function Footer({ lang }: FooterProps) {
   const links = [
     { href: '/products', label: isFr ? 'Produits' : 'Products' },
     { href: '/steel-spec', label: isFr ? 'Spécs Acier' : 'Steel Spec' },
+    { href: '/factory', label: isFr ? 'Notre Usine' : 'Factory' },
     { href: '/about', label: isFr ? 'Notre Histoire' : 'About' },
     { href: '/contact', label: 'Contact' },
   ];

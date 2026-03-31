@@ -94,6 +94,44 @@ export function SteelSpecPage({ lang = 'en' }: { lang?: string }) {
               ? '* Données provenant de GB/T 1591-2018 et ASTM A572-21. Certification d\'usine EN 10204-3.1 disponible sur demande.'
               : '* Data sourced from GB/T 1591-2018 and ASTM A572-21 standards. Third-party mill certification EN 10204-3.1 available upon request.'}
           </p>
+
+          {/* Visual Performance Bars */}
+          <div style={{ marginTop: '64px', paddingTop: '56px', borderTop: '1px solid #ebebeb' }}>
+            <p style={{ fontSize: '11px', letterSpacing: '0.3em', color: '#999', textTransform: 'uppercase', fontWeight: 300, marginBottom: '36px' }}>
+              {isFr ? 'Avantage Visuel — Écart de Performance' : 'Visual Edge — Performance Gap'}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
+              {[
+                { labelEn: 'Yield Strength', labelFr: 'Limite d\'élasticité', bih: 355, astm: 345, unit: 'MPa', max: 400 },
+                { labelEn: 'Tensile Strength', labelFr: 'Résistance à la traction', bih: 630, astm: 620, unit: 'MPa', max: 700 },
+                { labelEn: 'Elongation', labelFr: 'Allongement', bih: 20, astm: 18, unit: '%', max: 24 },
+                { labelEn: 'Max Plate Thickness', labelFr: 'Épaisseur max', bih: 150, astm: 100, unit: 'mm', max: 180 },
+              ].map((row) => (
+                <div key={row.labelEn}>
+                  <div className="flex justify-between items-baseline mb-2">
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a1a', letterSpacing: '0.02em' }}>
+                      {isFr ? row.labelFr : row.labelEn}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#aaa', fontWeight: 300 }}>
+                      BIH <strong style={{ color: '#1a1a1a' }}>{row.bih}</strong> vs ASTM <strong style={{ color: '#aaa' }}>{row.astm}</strong> {row.unit}
+                    </span>
+                  </div>
+                  <div style={{ position: 'relative', height: '8px', backgroundColor: '#f0f0f0' }}>
+                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${(row.astm / row.max) * 100}%`, backgroundColor: '#d0d0d0' }} />
+                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${(row.bih / row.max) * 100}%`, backgroundColor: '#1a1a1a' }} />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span style={{ fontSize: '9px', letterSpacing: '0.12em', color: '#1a1a1a', fontWeight: 600, textTransform: 'uppercase' }}>
+                      BIH Q355
+                    </span>
+                    <span style={{ fontSize: '9px', letterSpacing: '0.12em', color: '#bbb', fontWeight: 300, textTransform: 'uppercase' }}>
+                      ASTM A572
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -137,13 +175,123 @@ export function SteelSpecPage({ lang = 'en' }: { lang?: string }) {
         </div>
       </section>
 
+      {/* Microalloying Advantage */}
+      <section style={{ backgroundColor: '#fff', padding: '80px 0' }}>
+        <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+          <p style={{ fontSize: '11px', letterSpacing: '0.3em', color: '#999', textTransform: 'uppercase', fontWeight: 300, marginBottom: '32px' }}>
+            {isFr ? '03 — L\'Avantage Microallié' : '03 — The Microalloying Advantage'}
+          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div>
+              <h2 style={{ fontSize: 'clamp(22px, 3vw, 38px)', fontWeight: 900, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: '20px' }}>
+                {isFr ? 'Pourquoi Q355\nSoude Mieux' : 'Why Q355\nWelds Better'}
+              </h2>
+              <p style={{ fontSize: '14px', color: '#666', fontWeight: 300, lineHeight: 1.9, marginBottom: '16px' }}>
+                {isFr
+                  ? "Q355 intègre du vanadium, niobium et titane comme microéléments d'alliage. Ces ajouts affinent la structure granulaire de l'acier, augmentant la résistance aux fissures et permettant un soudage sans préchauffage (PWHT non requis)."
+                  : "Q355 incorporates vanadium, niobium, and titanium as microalloying elements. These additions refine grain structure, increase crack resistance, and allow welding without pre-heat treatment (PWHT not required) — reducing fabrication time and heat distortion versus A572."}
+              </p>
+              <p style={{ fontSize: '14px', color: '#666', fontWeight: 300, lineHeight: 1.9 }}>
+                {isFr
+                  ? "Le carbone équivalent ≤ 0.43 (vs ≤ 0.45 pour A572) signifie une meilleure résistance à la fissuration à froid, critique pour les environnements canadiens."
+                  : "Carbon equivalent ≤ 0.43 (vs ≤ 0.45 for A572) means superior cold-cracking resistance — critical for Canadian field environments where re-welding on-site must remain reliable at sub-zero temperatures."}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                {
+                  element: 'V', name: isFr ? 'Vanadium' : 'Vanadium',
+                  effect: isFr ? 'Affinage des grains. Augmente la résistance à la traction sans réduire la ductilité.' : 'Grain refinement. Increases tensile strength without sacrificing ductility.',
+                  pct: '0.02–0.15%',
+                },
+                {
+                  element: 'Nb', name: isFr ? 'Niobium' : 'Niobium',
+                  effect: isFr ? 'Améliore la ténacité aux chocs à basse température. Réduit la fragilisation à froid.' : 'Improves low-temperature impact toughness. Reduces cold-embrittlement risk.',
+                  pct: '0.01–0.06%',
+                },
+                {
+                  element: 'Ti', name: isFr ? 'Titane' : 'Titanium',
+                  effect: isFr ? 'Contrôle la taille des grains d\'austénite. Améliore la soudabilité et la résistance à la fatigue.' : 'Controls austenite grain size. Improves weldability and fatigue resistance under cyclic loading.',
+                  pct: '0.006–0.05%',
+                },
+              ].map((el) => (
+                <div key={el.element} style={{ backgroundColor: '#f9f9f9', border: '1px solid #ebebeb', padding: '24px 20px' }}>
+                  <div style={{ fontSize: '32px', fontWeight: 900, color: '#1a1a1a', letterSpacing: '-0.03em', lineHeight: 1, marginBottom: '4px' }}>{el.element}</div>
+                  <div style={{ fontSize: '10px', letterSpacing: '0.2em', color: '#999', textTransform: 'uppercase', fontWeight: 300, marginBottom: '12px' }}>{el.name} · {el.pct}</div>
+                  <p style={{ fontSize: '12px', color: '#555', fontWeight: 300, lineHeight: 1.7 }}>{el.effect}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Welding Process Standard */}
+      <section style={{ backgroundColor: '#f5f5f5', padding: '80px 0' }}>
+        <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+          <p style={{ fontSize: '11px', letterSpacing: '0.3em', color: '#999', textTransform: 'uppercase', fontWeight: 300, marginBottom: '32px' }}>
+            {isFr ? '04 — Processus de Fabrication' : '04 — Manufacturing Process'}
+          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div>
+              <h2 style={{ fontSize: 'clamp(22px, 3vw, 38px)', fontWeight: 900, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: '20px' }}>
+                {isFr ? 'Standard de\nSoudage Zéro-Défaut' : 'Zero-Defect\nWeld Standard'}
+              </h2>
+              <p style={{ fontSize: '14px', color: '#666', fontWeight: 300, lineHeight: 1.9 }}>
+                {isFr
+                  ? "Chaque soudure structurelle BIH est réalisée par des robots à 6 axes selon les procédures AWS D1.1, puis soumise à une inspection ultrasonique (UT) post-soudage. Les enregistrements d'inspection sont fournis avec chaque unité."
+                  : "Every BIH structural weld is performed by 6-axis robotic arms following AWS D1.1 welding procedures, then subjected to post-weld ultrasonic testing (UT). Weld inspection records are issued with each unit."}
+              </p>
+            </div>
+            <div className="flex flex-col gap-0">
+              {[
+                {
+                  step: '01', icon: '⬡',
+                  en: 'Material Traceability', enDesc: 'Every plate and pin arrives with EN 10204-3.1 mill certificate. Chemistry and mechanical properties verified before production begins.',
+                  fr: 'Traçabilité Matière', frDesc: 'Chaque plaque et axe arrive avec un certificat d\'usine EN 10204-3.1. Chimie et propriétés mécaniques vérifiées avant production.',
+                },
+                {
+                  step: '02', icon: '⬡',
+                  en: '6-Axis Robotic Welding', enDesc: 'CNC plasma cutting followed by 6-axis robotic welding per AWS D1.1. Zero-defect procedures on all structural load-bearing joints.',
+                  fr: 'Soudage Robotisé 6 Axes', frDesc: 'Découpe plasma CNC puis soudage robotisé 6 axes selon AWS D1.1. Procédures zéro-défaut sur toutes les soudures porteuses.',
+                },
+                {
+                  step: '03', icon: '⬡',
+                  en: 'Ultrasonic Weld Inspection', enDesc: 'Post-weld UT inspection on all primary welds. Full inspection records issued with each attachment unit.',
+                  fr: 'Inspection Ultrasonique', frDesc: 'Inspection UT post-soudage sur toutes les soudures primaires. Enregistrements complets fournis avec chaque unité.',
+                },
+                {
+                  step: '04', icon: '⬡',
+                  en: 'Cold Impact Load Test', enDesc: 'Destructive and non-destructive testing per ISO 7438. Cold impact at −40°C for Canadian climate certification.',
+                  fr: 'Test Charge + Froid', frDesc: 'Tests destructifs et non-destructifs selon ISO 7438. Impact froid à −40°C pour certification climatique canadienne.',
+                },
+              ].map((s, i, arr) => (
+                <div key={s.step} style={{ display: 'flex', gap: '20px', paddingBottom: i < arr.length - 1 ? '28px' : 0, borderBottom: i < arr.length - 1 ? '1px solid #e8e8e8' : 'none', paddingTop: i > 0 ? '28px' : 0 }}>
+                  <div style={{ flexShrink: 0, width: '36px', height: '36px', backgroundColor: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#ffc500', letterSpacing: '0.1em' }}>{s.step}</span>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a1a', marginBottom: '4px', letterSpacing: '0.02em' }}>
+                      {isFr ? s.fr : s.en}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#666', fontWeight: 300, lineHeight: 1.7 }}>
+                      {isFr ? s.frDesc : s.enDesc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Canadian Climate Section */}
       <section style={{ backgroundColor: '#1a1a1a', padding: '80px 0' }}>
         <div className="max-w-[1400px] mx-auto px-8 md:px-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="md:col-span-2">
               <p style={{ fontSize: '11px', letterSpacing: '0.3em', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', fontWeight: 300, marginBottom: '14px' }}>
-                {isFr ? '03 — Certification Canadienne' : '03 — Canadian Climate Certification'}
+                {isFr ? '05 — Certification Canadienne' : '05 — Canadian Climate Certification'}
               </p>
               <h2 style={{ fontSize: 'clamp(22px, 3.5vw, 44px)', fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '-0.025em', lineHeight: 1.05, marginBottom: '20px' }}>
                 {isFr ? 'Conçu pour\nles Hivers\nCanadiens' : 'Engineered for\nCanadian\nWinters'}

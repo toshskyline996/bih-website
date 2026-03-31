@@ -30,6 +30,7 @@ export function Navbar({ lang, setLang }: NavbarProps) {
     { href: '/products',      label: isFr ? 'Produits'       : 'Products'      },
     { href: '/compatibility', label: isFr ? 'Compatibilité'  : 'Compatibility' },
     { href: '/steel-spec',    label: isFr ? 'Spécs Acier'    : 'Steel Spec'    },
+    { href: '/factory',       label: isFr ? 'Notre Usine'    : 'Factory'       },
     { href: '/about',         label: isFr ? 'Notre Histoire' : 'About'         },
     { href: '/contact',       label: isFr ? 'Contact'        : 'Contact'       },
   ];
