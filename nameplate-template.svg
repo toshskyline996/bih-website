@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  BIH Factory Nameplate — Physical Production Template
+  Size: 90mm × 50mm  (340px × 189px at 96 dpi)
+  Material: 1.5mm 304 Stainless Steel or Q355
+  Process: Laser Etching / Chemical Etching
+  Mounting: M5 bolts through Ø5.5mm holes (both ends)
+
+  Usage: Replace [MODEL_LINE] with product-specific spec string.
+  Example model lines:
+    BIH-EXC-HD12 · Q355D · 12–25T · Hardox 450
+    BIH-CPL-HY05 · Q355D · 5–25T  · EN 474
+    BIH-BRK-SM05 · Alloy Steel · 5–12T · 450–850 J
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="340"
+  height="189"
+  viewBox="0 0 340 189"
+  font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+>
+  <!-- Background (represents etched metal surface) -->
+  <rect width="340" height="189" fill="#1A1A1A" rx="2"/>
+
+  <!-- Outer border -->
+  <rect x="6" y="6" width="328" height="177" fill="none" stroke="#555" stroke-width="0.75"/>
+
+  <!-- M5 bolt holes — left -->
+  <circle cx="22" cy="94.5" r="5.5" fill="#0A0A0A" stroke="#444" stroke-width="0.5"/>
+  <circle cx="22" cy="94.5" r="2" fill="none" stroke="#666" stroke-width="0.5"/>
+
+  <!-- M5 bolt holes — right -->
+  <circle cx="318" cy="94.5" r="5.5" fill="#0A0A0A" stroke="#444" stroke-width="0.5"/>
+  <circle cx="318" cy="94.5" r="2" fill="none" stroke="#666" stroke-width="0.5"/>
+
+  <!-- ── ROW 1: Logo + Brand name ── -->
+  <!-- BIH arrow mark (simplified) -->
+  <g transform="translate(40, 30)">
+    <polygon points="0,0 14,8 0,16 4,8" fill="#FFC500"/>
+    <rect x="5" y="6" width="12" height="4" fill="#FFC500"/>
+  </g>
+
+  <!-- Brand wordmark -->
+  <text x="62" y="41" font-size="11" font-weight="700" fill="#FFC500" letter-spacing="2">BOREAL IRON HEAVY</text>
+
+  <!-- Separator line 1 -->
+  <line x1="36" y1="52" x2="304" y2="52" stroke="#444" stroke-width="0.5"/>
+
+  <!-- ── ROW 2: Model / Spec line ── -->
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">
+    [MODEL_LINE]
+  </text>
+  <!-- Example (comment out above and use one of these for final production):
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-EXC-HD12 · Q355D · 12–25T · Hardox 450</text>
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-EXC-HD25 · Q355D · 25–50T · Hardox 450</text>
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-EXC-MN01 · Q355D · 1–5T  · Hardox 450</text>
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-SKL-HD12 · Q355D · 12–25T · Hardox 450</text>
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-BRK-SM05 · Alloy Steel · 5–12T · 450–850 J</text>
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-BRK-ML12 · Alloy Steel · 12–30T · 1500–4500 J</text>
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-CPL-HY05 · Q355D · 5–25T  · EN 474</text>
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-THM-HY05 · Q355D · 5–25T  · Hardox 450</text>
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-RIP-SS12  · Q355D · 12–30T · Hardox 450</text>
+  <text x="40" y="82" font-size="11" font-weight="700" fill="#EEEEEE" letter-spacing="1.2">BIH-AUG-DR05  · Ductile Iron · 5–25T · Hardox 450</text>
+  -->
+
+  <!-- Separator line 2 -->
+  <line x1="36" y1="96" x2="304" y2="96" stroke="#444" stroke-width="0.5"/>
+
+  <!-- ── ROW 3: QR placeholder + URL + certs ── -->
+
+  <!-- QR placeholder (24×24 px) -->
+  <rect x="40" y="108" width="28" height="28" fill="none" stroke="#666" stroke-width="0.75" stroke-dasharray="2,2"/>
+  <text x="54" y="125" font-size="6" fill="#555" text-anchor="middle">QR</text>
+
+  <!-- URL -->
+  <text x="76" y="118" font-size="8.5" fill="#AAAAAA" letter-spacing="0.5">borealironheavy.ca</text>
+
+  <!-- Cert icons (text badges) -->
+  <rect x="76" y="124" width="22" height="9" fill="none" stroke="#555" stroke-width="0.5"/>
+  <text x="87" y="131" font-size="6" fill="#888" text-anchor="middle" letter-spacing="0.3">CE</text>
+
+  <rect x="102" y="124" width="36" height="9" fill="none" stroke="#555" stroke-width="0.5"/>
+  <text x="120" y="131" font-size="6" fill="#888" text-anchor="middle" letter-spacing="0.3">ISO 9001</text>
+
+  <rect x="142" y="124" width="34" height="9" fill="none" stroke="#555" stroke-width="0.5"/>
+  <text x="159" y="131" font-size="6" fill="#888" text-anchor="middle" letter-spacing="0.3">EN 474</text>
+
+  <!-- Bottom info -->
+  <text x="40" y="160" font-size="7" fill="#555" letter-spacing="0.5">Mfg. Shandong, CN · −40°C Rated · ISO 9001 Certified</text>
+
+  <!-- Size annotation (remove before production) -->
+  <text x="170" y="182" font-size="6" fill="#333" text-anchor="middle" letter-spacing="0.3">90mm × 50mm · LASER ETCH · 304 SS OR Q355 · M5 HOLES</text>
+</svg>

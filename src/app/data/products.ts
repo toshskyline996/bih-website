@@ -28,6 +28,7 @@ export interface Product {
   featuresFr: string[];
   priceCad: number;
   weightKg: number;
+  modelNumber: string;
   tag?: string;
 }
 
@@ -104,6 +105,7 @@ export const products: Product[] = [
     ],
     priceCad: 3800,
     weightKg: 750,
+    modelNumber: 'BIH-EXC-HD12',
     tag: 'BESTSELLER',
   },
   {
@@ -157,6 +159,7 @@ export const products: Product[] = [
     ],
     priceCad: 7200,
     weightKg: 2000,
+    modelNumber: 'BIH-EXC-HD25',
     tag: 'HEAVY DUTY',
   },
   {
@@ -206,6 +209,7 @@ export const products: Product[] = [
     ],
     priceCad: 1450,
     weightKg: 120,
+    modelNumber: 'BIH-EXC-MN01',
     tag: 'COMPACT',
   },
   // RAKE / SKELETON BUCKETS
@@ -254,6 +258,7 @@ export const products: Product[] = [
     ],
     priceCad: 3100,
     weightKg: 600,
+    modelNumber: 'BIH-SKL-HD12',
     tag: 'LAND CLEARING',
   },
   // HYDRAULIC BREAKERS
@@ -304,6 +309,7 @@ export const products: Product[] = [
     ],
     priceCad: 5200,
     weightKg: 380,
+    modelNumber: 'BIH-BRK-SM05',
     tag: 'NEW 2026',
   },
   {
@@ -353,6 +359,7 @@ export const products: Product[] = [
     ],
     priceCad: 11500,
     weightKg: 1500,
+    modelNumber: 'BIH-BRK-ML12',
     tag: 'HIGH POWER',
   },
   // QUICK COUPLERS
@@ -403,6 +410,7 @@ export const products: Product[] = [
     ],
     priceCad: 3200,
     weightKg: 330,
+    modelNumber: 'BIH-CPL-HY05',
     tag: 'EN 474',
   },
   // HYDRAULIC THUMBS
@@ -451,6 +459,7 @@ export const products: Product[] = [
     ],
     priceCad: 2700,
     weightKg: 250,
+    modelNumber: 'BIH-THM-HY05',
     tag: 'VERSATILE',
   },
   // RIPPERS
@@ -499,6 +508,7 @@ export const products: Product[] = [
     ],
     priceCad: 2900,
     weightKg: 625,
+    modelNumber: 'BIH-RIP-SS12',
     tag: 'CANADIAN WINTER',
   },
   // EARTH AUGERS
@@ -553,6 +563,7 @@ export const products: Product[] = [
     ],
     priceCad: 4200,
     weightKg: 400,
+    modelNumber: 'BIH-AUG-DR05',
     tag: 'CUSTOM',
   },
 ];

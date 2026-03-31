@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router';
 import { ArrowLeft, CheckCircle, ChevronRight, ShoppingCart, Check } from 'lucide-react';
 import { getProductBySlug } from '../data/products';
 import { useCartStore } from '../store/cartStore';
+import { NameplateBadge } from '../components/NameplateBadge';
 
 const img1 = 'https://images.unsplash.com/photo-1724555959431-a9db1c2fb66f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoeWRyYXVsaWMlMjBidWNrZXQlMjBleGNhdmF0b3IlMjBjb25zdHJ1Y3Rpb24lMjBzaXRlfGVufDF8fHx8MTc3NDc2NTAxOXww&ixlib=rb-4.1.0&q=80&w=1080';
 const img2 = 'https://images.unsplash.com/photo-1730584475795-f0be0efd606e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGVlbCUyMHdlbGRpbmclMjBzcGFya3MlMjBpbmR1c3RyaWFsJTIwbWFudWZhY3R1cmluZ3xlbnwxfHx8fDE3NzQ3NjUwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080';
@@ -93,7 +94,7 @@ export function ProductDetailPage({ lang = 'en' }: { lang?: string }) {
               {/* Cert badges */}
               <div className="flex gap-2 mt-4 flex-wrap">
                 {product.certificates.map((cert) => (
-                  <span key={cert} style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.15em', padding: '4px 10px', backgroundColor: '#ffc500', color: '#1a1a1a', textTransform: 'uppercase' }}>
+                  <span key={cert} style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.15em', padding: '4px 10px', backgroundColor: '#161616', color: '#FFC500', border: '1px solid rgba(255,197,0,0.4)', textTransform: 'uppercase' }}>
                     {cert}
                   </span>
                 ))}
@@ -219,6 +220,61 @@ export function ProductDetailPage({ lang = 'en' }: { lang?: string }) {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Material Trust Strip */}
+      <section style={{ backgroundColor: '#1a1a1a', padding: '48px 0', borderBottom: '1px solid #252525' }}>
+        <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+            <div className="md:col-span-2">
+              <p style={{ fontSize: '10px', letterSpacing: '0.28em', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 300, marginBottom: '12px' }}>
+                {isFr ? 'Standard Matière' : 'Material Standard'}
+              </p>
+              <div className="flex flex-wrap gap-3 mb-4">
+                {[
+                  { badge: 'Q355D HSLA', sub: isFr ? 'Corps Structural' : 'Structural Body' },
+                  { badge: 'Hardox 450', sub: isFr ? 'Pièces d\'Usure' : 'Wear Parts' },
+                  { badge: 'EN 10204-3.1', sub: isFr ? 'Certification Usine' : 'Mill Certified' },
+                  { badge: 'AWS D1.1', sub: isFr ? 'Soudage Robot.' : 'Robotic Weld' },
+                  { badge: '−40°C', sub: isFr ? 'Cert. Impact Froid' : 'Cold Impact Rated' },
+                ].map((b) => (
+                  <div key={b.badge} style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', padding: '8px 14px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: '#ffc500', letterSpacing: '0.06em' }}>{b.badge}</p>
+                    <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 300, marginTop: '2px' }}>{b.sub}</p>
+                  </div>
+                ))}
+              </div>
+              <Link to="/steel-spec" style={{ fontSize: '11px', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', textDecoration: 'none', fontWeight: 300, borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '1px' }}>
+                {isFr ? 'Voir spécifications acier complètes →' : 'View full steel spec sheet →'}
+              </Link>
+            </div>
+            <div style={{ backgroundColor: 'rgba(255,197,0,0.06)', border: '1px solid rgba(255,197,0,0.18)', padding: '20px 22px' }}>
+              <p style={{ fontSize: '10px', letterSpacing: '0.25em', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', fontWeight: 300, marginBottom: '8px' }}>
+                {isFr ? 'Vérifier la Compatibilité' : 'Check Compatibility'}
+              </p>
+              <p style={{ fontSize: '13px', color: '#fff', fontWeight: 400, lineHeight: 1.6, marginBottom: '14px' }}>
+                {isFr
+                  ? 'Confirm que cet accessoire s\'adapte à votre excavatrice sans adaptateur.'
+                  : 'Confirm this attachment fits your excavator — direct-fit, no adapters.'}
+              </p>
+              <Link to="/compatibility" style={{ display: 'inline-block', fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', padding: '10px 20px', backgroundColor: '#ffc500', color: '#1a1a1a', textTransform: 'uppercase', textDecoration: 'none' }}>
+                {isFr ? 'Outil OEM →' : 'OEM Finder →'}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Factory Nameplate */}
+      <section style={{ backgroundColor: '#0E0E0E', padding: '48px 0' }}>
+        <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+          <p style={{ fontSize: '11px', letterSpacing: '0.3em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', fontWeight: 300, marginBottom: '20px', fontFamily: "'Inter', sans-serif" }}>
+            {isFr ? '03 — Plaque d\'Identification' : '03 — Factory Nameplate'}
+          </p>
+          <div className="max-w-[640px]">
+            <NameplateBadge product={product} lang={lang} />
           </div>
         </div>
       </section>

@@ -78,7 +78,7 @@ export function HomePage({ lang = 'en' }: { lang?: string }) {
       {/* ── HERO ── */}
       <section
         className="relative overflow-hidden"
-        style={{ height: '100svh', minHeight: '620px', background: '#0d0d0d' }}
+        style={{ height: '100svh', minHeight: '620px', background: '#0E0E0E' }}
       >
         <img
           src={heroImg}
@@ -169,8 +169,8 @@ export function HomePage({ lang = 'en' }: { lang?: string }) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-8">
             {valueProps.map((vp) => (
               <div key={vp.title} className="flex flex-col">
-                <div style={{ width: '44px', height: '44px', backgroundColor: '#ffc500', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', flexShrink: 0 }}>
-                  <vp.icon size={20} color="#1a1a1a" />
+                <div style={{ width: '44px', height: '44px', backgroundColor: '#1A2E3F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', flexShrink: 0 }}>
+                  <vp.icon size={20} color="#E8E8E8" />
                 </div>
                 <h3 style={{ fontSize: '14px', fontWeight: 900, letterSpacing: '0.06em', color: '#1a1a1a', textTransform: 'uppercase', marginBottom: '10px' }}>{vp.title}</h3>
                 <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.8, fontWeight: 300, flexGrow: 1 }}>{vp.desc}</p>
@@ -190,7 +190,7 @@ export function HomePage({ lang = 'en' }: { lang?: string }) {
       </section>
 
       {/* ── STATS BAR ── */}
-      <section style={{ backgroundColor: '#1a1a1a', padding: '40px 0' }}>
+      <section style={{ backgroundColor: '#0E0E0E', padding: '40px 0' }}>
         <div className="max-w-[1400px] mx-auto px-8 md:px-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
@@ -204,6 +204,74 @@ export function HomePage({ lang = 'en' }: { lang?: string }) {
                 <p style={{ fontSize: '10px', fontWeight: 300, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginTop: '8px' }}>{s.label}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── MATERIAL EXCELLENCE ── */}
+      <section className="bg-white" style={{ padding: '100px 0' }}>
+        <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <p style={{ fontSize: '11px', letterSpacing: '0.3em', color: '#999', textTransform: 'uppercase', fontWeight: 300, marginBottom: '14px' }}>
+                {isFr ? '02 — Standard Matière' : '02 — Material Standard'}
+              </p>
+              <h2 style={{ fontSize: 'clamp(26px, 4vw, 52px)', fontWeight: 900, color: '#1a1a1a', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 1, marginBottom: '20px' }}>
+                {isFr ? 'Acier Q355\nGrade Nord' : 'Q355 Steel.\nThe Northern\nGrade.'}
+              </h2>
+              <div style={{ width: '40px', height: '2px', backgroundColor: '#1a1a1a', marginBottom: '20px' }} />
+              <p style={{ fontSize: '14px', color: '#555', lineHeight: 1.85, fontWeight: 300, marginBottom: '28px', maxWidth: '420px' }}>
+                {isFr
+                  ? "BIH construit chaque accessoire en acier structural Q355D HSLA — le sous-grade le plus élevé, avec microalliage vanadium-niobium-titane pour une soudabilité supérieure et une résistance aux chocs à −40°C."
+                  : "BIH builds every attachment from Q355D HSLA structural steel — incorporating vanadium, niobium and titanium microalloying for superior weldability, crack resistance, and cold impact toughness rated to −40°C."}
+              </p>
+              <div className="grid grid-cols-2 gap-5 mb-8">
+                {[
+                  { val: '355 MPa', label: isFr ? 'Limite d\'élasticité min' : 'Min Yield Strength' },
+                  { val: '≤ 0.43', label: isFr ? 'Éq. carbone' : 'Carbon Equivalent' },
+                  { val: '34J @ −20°C', label: isFr ? 'Test impact Q355' : 'Q355 Impact Test' },
+                  { val: 'PWHT-Free', label: isFr ? 'Soudage sans préchauffage' : 'No Pre-heat Weld' },
+                ].map((s) => (
+                  <div key={s.label} style={{ borderLeft: '2px solid #ffc500', paddingLeft: '14px' }}>
+                    <p style={{ fontSize: 'clamp(15px, 1.8vw, 20px)', fontWeight: 900, color: '#1a1a1a', letterSpacing: '-0.01em', lineHeight: 1 }}>{s.val}</p>
+                    <p style={{ fontSize: '10px', color: '#999', fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              <Link
+                to="/steel-spec"
+                className="flex items-center gap-1"
+                style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.18em', color: '#1a1a1a', textTransform: 'uppercase', textDecoration: 'none', borderBottom: '1px solid #1a1a1a', paddingBottom: '2px', display: 'inline-flex', transition: 'opacity 0.2s' }}
+                onMouseEnter={e => ((e.target as HTMLElement).style.opacity = '0.5')}
+                onMouseLeave={e => ((e.target as HTMLElement).style.opacity = '1')}
+              >
+                {isFr ? 'Voir Spécs Acier Complètes' : 'Full Steel Spec Sheet'} <ArrowRight size={12} />
+              </Link>
+            </div>
+            <div>
+              <div className="flex flex-col gap-3">
+                {[
+                  { labelEn: 'Yield Strength', labelFr: 'Limite d\'élasticité', bih: 355, astm: 345, unit: 'MPa', max: 400 },
+                  { labelEn: 'Tensile Strength', labelFr: 'Résistance traction', bih: 630, astm: 620, unit: 'MPa', max: 700 },
+                  { labelEn: 'Max Plate Thickness', labelFr: 'Épaisseur max', bih: 150, astm: 100, unit: 'mm', max: 180 },
+                  { labelEn: 'Elongation', labelFr: 'Allongement', bih: 20, astm: 18, unit: '%', max: 24 },
+                ].map((row) => (
+                  <div key={row.labelEn} style={{ backgroundColor: '#f9f9f9', padding: '20px 24px' }}>
+                    <div className="flex justify-between items-baseline mb-3">
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a1a' }}>{isFr ? row.labelFr : row.labelEn}</span>
+                      <span style={{ fontSize: '10px', color: '#aaa', fontWeight: 300 }}>BIH <strong style={{ color: '#1a1a1a' }}>{row.bih}</strong> vs ASTM <strong>{row.astm}</strong> {row.unit}</span>
+                    </div>
+                    <div style={{ position: 'relative', height: '6px', backgroundColor: '#e8e8e8' }}>
+                      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${(row.astm / row.max) * 100}%`, backgroundColor: '#ccc' }} />
+                      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${(row.bih / row.max) * 100}%`, backgroundColor: '#1a1a1a' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: '10px', color: '#bbb', fontWeight: 300, marginTop: '12px', letterSpacing: '0.05em' }}>
+                {isFr ? 'Q355 GB/T 1591-2018 vs ASTM A572 Grade 50' : 'Q355 GB/T 1591-2018 vs ASTM A572 Grade 50'}
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -293,21 +361,21 @@ export function HomePage({ lang = 'en' }: { lang?: string }) {
       </section>
 
       {/* ── CTA BAR ── */}
-      <section style={{ backgroundColor: '#ffc500', padding: '56px 0' }}>
+      <section style={{ backgroundColor: '#0E0E0E', padding: '56px 0' }}>
         <div className="max-w-[1400px] mx-auto px-8 md:px-16 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
           <div>
-            <h2 style={{ fontSize: 'clamp(22px, 3vw, 36px)', fontWeight: 900, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+            <h2 style={{ fontSize: 'clamp(22px, 3vw, 36px)', fontWeight: 900, color: '#E8E8E8', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {isFr ? 'Prêt à Commander ?' : 'Ready to Order?'}
             </h2>
-            <p style={{ fontSize: '14px', color: 'rgba(26,26,26,0.6)', fontWeight: 300, marginTop: '8px' }}>
+            <p style={{ fontSize: '14px', color: 'rgba(232,232,232,0.5)', fontWeight: 300, marginTop: '8px' }}>
               {isFr ? 'Délai: 6–10 semaines · Certifié ISO 9001 · Sans intermédiaire' : '6–10 Week Lead Time · ISO 9001 Certified · No Middlemen'}
             </p>
           </div>
           <div className="flex gap-4 flex-wrap">
-            <Link to="/contact" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.18em', padding: '14px 32px', backgroundColor: '#1a1a1a', color: '#fff', textTransform: 'uppercase', textDecoration: 'none', display: 'inline-block', transition: 'opacity 0.2s' }}>
+            <Link to="/contact" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.18em', padding: '14px 32px', backgroundColor: '#FFC500', color: '#0E0E0E', textTransform: 'uppercase', textDecoration: 'none', display: 'inline-block', transition: 'opacity 0.2s' }}>
               {isFr ? 'Demander un Devis' : 'Request Quote'}
             </Link>
-            <Link to="/steel-spec" style={{ fontSize: '12px', fontWeight: 400, letterSpacing: '0.18em', padding: '14px 32px', border: '1.5px solid rgba(26,26,26,0.4)', color: '#1a1a1a', textTransform: 'uppercase', textDecoration: 'none', display: 'inline-block', transition: 'all 0.2s' }}>
+            <Link to="/steel-spec" style={{ fontSize: '12px', fontWeight: 400, letterSpacing: '0.18em', padding: '14px 32px', border: '1.5px solid rgba(232,232,232,0.3)', color: '#E8E8E8', textTransform: 'uppercase', textDecoration: 'none', display: 'inline-block', transition: 'all 0.2s' }}>
               {isFr ? 'Voir les Spécs' : 'Steel Specs'}
             </Link>
           </div>

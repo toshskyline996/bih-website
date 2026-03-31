@@ -40,7 +40,7 @@ export function ProductsPage({ lang = 'en' }: { lang?: string }) {
   return (
     <div style={IL}>
       {/* Page Header */}
-      <section style={{ backgroundColor: '#1a1a1a', padding: '80px 0 60px' }}>
+      <section style={{ backgroundColor: '#0E0E0E', padding: '80px 0 60px' }}>
         <div className="max-w-[1400px] mx-auto px-8 md:px-16">
           <p style={{ fontSize: '11px', letterSpacing: '0.3em', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', fontWeight: 300, marginBottom: '12px' }}>
             {isFr ? 'Catalogue Complet' : 'Full Catalogue'}
@@ -95,7 +95,7 @@ export function ProductsPage({ lang = 'en' }: { lang?: string }) {
                   key={product.id}
                   to={`/products/${product.slug}`}
                   className="relative overflow-hidden block"
-                  style={{ border: '8px solid #f5f5f5', textDecoration: 'none', boxShadow: isHov ? '0 16px 48px rgba(0,0,0,0.10)' : 'none', transition: 'box-shadow 0.35s' }}
+                  style={{ border: '8px solid #f0f0f0', textDecoration: 'none', boxShadow: isHov ? '0 16px 48px rgba(0,0,0,0.12)' : 'none', transition: 'box-shadow 0.35s' }}
                   onMouseEnter={() => setHovered(product.id)}
                   onMouseLeave={() => setHovered(null)}
                 >
@@ -115,7 +115,7 @@ export function ProductsPage({ lang = 'en' }: { lang?: string }) {
                   {/* Cert badges */}
                   <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
                     {product.certificates.slice(0, 2).map((cert) => (
-                      <span key={cert} style={{ fontSize: '7px', fontWeight: 600, letterSpacing: '0.15em', padding: '2px 6px', backgroundColor: 'rgba(255,197,0,0.9)', color: '#1a1a1a' }}>
+                      <span key={cert} style={{ fontSize: '7px', fontWeight: 600, letterSpacing: '0.15em', padding: '2px 6px', backgroundColor: 'rgba(14,14,14,0.82)', color: '#FFC500', border: '1px solid rgba(255,197,0,0.5)' }}>
                         {cert}
                       </span>
                     ))}
