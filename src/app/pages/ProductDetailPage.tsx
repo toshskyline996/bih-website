@@ -16,6 +16,7 @@ const productImages: Record<string, string> = {
 };
 
 const IL = { fontFamily: "'Inter', sans-serif" };
+const WEB3FORMS_KEY = import.meta.env.VITE_WEB3FORMS_KEY as string;
 
 export function ProductDetailPage({ lang = 'en' }: { lang?: string }) {
   const { slug } = useParams<{ slug: string }>();
@@ -55,7 +56,29 @@ export function ProductDetailPage({ lang = 'en' }: { lang?: string }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormSent(true);
+    const payload = { ...inquiry, product: product?.name, productId: product?.id };
+    fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_KEY,
+        subject: `BIH Inquiry — ${product?.name} — ${inquiry.name}`,
+        from_name: 'BIH Website',
+        ...payload,
+      }),
+    })
+      .then((r) => r.json())
+      .then((r) => {
+        if (r.success) {
+          setFormSent(true);
+          fetch('https://n8n.freightracing.ca/webhook/bih-quote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          }).catch(() => {});
+        }
+      })
+      .catch(() => setFormSent(true));
   };
 
   return (

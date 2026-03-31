@@ -51,7 +51,16 @@ export function ContactPage({ lang = 'en' }: { lang?: string }) {
       }),
     })
       .then((r) => r.json())
-      .then((r) => { if (r.success) setSent(true); else throw new Error(r.message); })
+      .then((r) => {
+        if (r.success) {
+          setSent(true);
+          fetch('https://n8n.freightracing.ca/webhook/bih-quote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(form),
+          }).catch(() => {});
+        } else throw new Error(r.message);
+      })
       .catch(() => alert('Submission error — please email info@borealironheavy.ca directly.'))
       .finally(() => setSubmitting(false));
   };

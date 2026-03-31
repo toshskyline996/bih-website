@@ -15,6 +15,7 @@ const CheckoutPage       = lazy(() => import('./pages/CheckoutPage').then(m => (
 const OrderSuccessPage      = lazy(() => import('./pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
 const CompatibilityPage     = lazy(() => import('./pages/CompatibilityPage').then(m => ({ default: m.CompatibilityPage })));
 const FactoryPage           = lazy(() => import('./pages/FactoryPage').then(m => ({ default: m.FactoryPage })));
+const BrandLandingPage      = lazy(() => import('./pages/BrandLandingPage').then(m => ({ default: m.BrandLandingPage })));
 
 const PageLoader = () => <div style={{ minHeight: '60vh', backgroundColor: '#111' }} />;
 
@@ -40,6 +41,7 @@ export default function App() {
             { path: 'checkout',       element: <Suspense fallback={<PageLoader />}><CheckoutPage /></Suspense> },
             { path: 'order/success',  element: <Suspense fallback={<PageLoader />}><OrderSuccessPage /></Suspense> },
             { path: 'factory',       element: <Suspense fallback={<PageLoader />}><FactoryPage lang={lang} /></Suspense> },
+            { path: 'excavator-attachments/:brandSlug', element: <Suspense fallback={<PageLoader />}><BrandLandingPage /></Suspense> },
             { path: '*', element: <Suspense fallback={<PageLoader />}><HomePage lang={lang} /></Suspense> },
           ],
         },

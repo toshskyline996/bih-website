@@ -117,6 +117,24 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
               );
             })}
           </div>
+          {selectedBrand && (() => {
+            const slugMap: Record<string, string> = {
+              'CAT': 'cat', 'Komatsu': 'komatsu', 'Volvo': 'volvo',
+              'Hitachi': 'hitachi', 'John Deere': 'john-deere',
+              'Kubota': 'kubota', 'Bobcat': 'bobcat',
+            };
+            const slug = slugMap[selectedBrand.shortName];
+            return (
+              <div style={{ marginTop: '14px' }}>
+                <Link
+                  to={`/excavator-attachments/${slug}`}
+                  style={{ fontSize: '10px', letterSpacing: '0.2em', color: selectedBrand.color, textTransform: 'uppercase', textDecoration: 'none', fontWeight: 500 }}
+                >
+                  {isFr ? `Voir tous les accessoires ${selectedBrand.shortName} →` : `View all ${selectedBrand.shortName} attachments →`}
+                </Link>
+              </div>
+            );
+          })()}
         </div>
       </section>
 

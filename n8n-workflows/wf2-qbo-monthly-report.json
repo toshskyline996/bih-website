@@ -1,0 +1,178 @@
+{
+  "name": "BIH — QBO Monthly Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 1 * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "id": "f2a2b3c4-d5e6-7890-abcd-ef1234560001",
+      "name": "1st of Month 8AM"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate last month's date range\nconst now = new Date();\nconst firstThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);\nconst firstLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);\n\nconst pad = (n) => String(n).padStart(2, '0');\nconst fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;\n\nreturn [{\n  json: {\n    startDate: fmt(firstLastMonth),\n    endDate: fmt(firstThisMonth),\n    monthLabel: firstLastMonth.toLocaleString('en-CA', { month: 'long', year: 'numeric' }),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "id": "f2a2b3c4-d5e6-7890-abcd-ef1234560002",
+      "name": "Date Range"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Basic {{ Buffer.from($env.QUICKBOOKS_CLIENT_ID + ':' + $env.QUICKBOOKS_CLIENT_SECRET).toString('base64') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            },
+            {
+              "name": "refresh_token",
+              "value": "={{ $env.QUICKBOOKS_REFRESH_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300],
+      "id": "f2a2b3c4-d5e6-7890-abcd-ef1234560003",
+      "name": "QBO Refresh Token"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://quickbooks.api.intuit.com/v3/company/{{ $env.QUICKBOOKS_REALM_ID }}/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('QBO Refresh Token').item.json.access_token }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=SELECT * FROM SalesReceipt WHERE MetaData.CreateTime >= '{{ $('Date Range').item.json.startDate }}' AND MetaData.CreateTime < '{{ $('Date Range').item.json.endDate }}' MAXRESULTS 1000"
+            },
+            {
+              "name": "minorversion",
+              "value": "65"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 300],
+      "id": "f2a2b3c4-d5e6-7890-abcd-ef1234560004",
+      "name": "QBO Get Receipts"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.item.json;\nconst monthLabel = $('Date Range').item.json.monthLabel;\n\nconst receipts = data?.QueryResponse?.SalesReceipt ?? [];\nconst count = receipts.length;\n\nlet totalRevenue = 0;\nconst productCounts = {};\n\nfor (const receipt of receipts) {\n  totalRevenue += receipt.TotalAmt || 0;\n  for (const line of (receipt.Line || [])) {\n    if (line.DetailType === 'SalesItemLineDetail') {\n      const name = line.Description || line.SalesItemLineDetail?.ItemRef?.name || 'Unknown';\n      const qty = line.SalesItemLineDetail?.Qty || 1;\n      productCounts[name] = (productCounts[name] || 0) + qty;\n    }\n  }\n}\n\nconst topProducts = Object.entries(productCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([name, qty]) => `  • ${name}: ${qty} unit${qty > 1 ? 's' : ''}`)\n  .join('\\n');\n\nconst fmt = (n) => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(n);\n\nconst message = [\n  `📊 *BIH Monthly Report — ${monthLabel}*`,\n  ``,\n  `💰 Revenue: *${fmt(totalRevenue)}*`,\n  `📦 Orders: *${count}*`,\n  count > 0 ? `📈 Avg order: *${fmt(totalRevenue / count)}*` : null,\n  ``,\n  topProducts ? `*Top Products:*\\n${topProducts}` : '*No sales recorded*',\n  ``,\n  `_Generated by n8n · BIH automation_`,\n].filter(Boolean).join('\\n');\n\nreturn [{ json: { message, count, totalRevenue, monthLabel } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 300],
+      "id": "f2a2b3c4-d5e6-7890-abcd-ef1234560005",
+      "name": "Summarize"
+    },
+    {
+      "parameters": {
+        "chatId": "1924188362",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1440, 300],
+      "id": "f2a2b3c4-d5e6-7890-abcd-ef1234560006",
+      "name": "Telegram Report",
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_WITH_TELEGRAM_CRED_ID",
+          "name": "BIH Telegram Bot"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1st of Month 8AM": {
+      "main": [
+        [{ "node": "Date Range", "type": "main", "index": 0 }]
+      ]
+    },
+    "Date Range": {
+      "main": [
+        [{ "node": "QBO Refresh Token", "type": "main", "index": 0 }]
+      ]
+    },
+    "QBO Refresh Token": {
+      "main": [
+        [{ "node": "QBO Get Receipts", "type": "main", "index": 0 }]
+      ]
+    },
+    "QBO Get Receipts": {
+      "main": [
+        [{ "node": "Summarize", "type": "main", "index": 0 }]
+      ]
+    },
+    "Summarize": {
+      "main": [
+        [{ "node": "Telegram Report", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "BIH" }
+  ]
+}

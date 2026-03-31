@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { products, categoryLabels, categoryLabelsFr, type ProductCategory } from '../data/products';
+import { brandData } from '../data/compatibility';
 
 const img1 = 'https://images.unsplash.com/photo-1724555959431-a9db1c2fb66f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoeWRyYXVsaWMlMjBidWNrZXQlMjBleGNhdmF0b3IlMjBjb25zdHJ1Y3Rpb24lMjBzaXRlfGVufDF8fHx8MTc3NDc2NTAxOXww&ixlib=rb-4.1.0&q=80&w=1080';
 const img2 = 'https://images.unsplash.com/photo-1730584475795-f0be0efd606e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGVlbCUyMHdlbGRpbmclMjBzcGFya3MlMjBpbmR1c3RyaWFsJTIwbWFudWZhY3R1cmluZ3xlbnwxfHx8fDE3NzQ3NjUwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080';
@@ -143,6 +144,41 @@ export function ProductsPage({ lang = 'en' }: { lang?: string }) {
               </p>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Shop by Brand */}
+      <section style={{ backgroundColor: '#f5f5f5', padding: '72px 0' }}>
+        <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+          <p style={{ fontSize: '11px', letterSpacing: '0.3em', color: '#999', textTransform: 'uppercase', fontWeight: 300, marginBottom: '10px' }}>
+            {isFr ? 'Par marque' : 'Shop by Brand'}
+          </p>
+          <h2 style={{ fontSize: 'clamp(20px, 3vw, 40px)', fontWeight: 900, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '-0.025em', lineHeight: 1, marginBottom: '36px' }}>
+            {isFr ? 'Compatibilité OEM' : 'OEM Compatibility'}
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+            {brandData.map((b) => {
+              const slugMap: Record<string, string> = {
+                'CAT': 'cat', 'Komatsu': 'komatsu', 'Volvo': 'volvo',
+                'Hitachi': 'hitachi', 'John Deere': 'john-deere',
+                'Kubota': 'kubota', 'Bobcat': 'bobcat',
+              };
+              const slug = slugMap[b.shortName];
+              return (
+                <Link
+                  key={b.brand}
+                  to={`/excavator-attachments/${slug}`}
+                  style={{ textDecoration: 'none', border: '1px solid #e0e0e0', padding: '20px 16px', backgroundColor: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', transition: 'border-color 0.2s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = b.color; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e0e0e0'; }}
+                >
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: b.color }} />
+                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', color: '#1a1a1a', textTransform: 'uppercase', textAlign: 'center' }}>{b.shortName}</p>
+                  <p style={{ fontSize: '9px', color: '#aaa', fontWeight: 300 }}>{b.models.length} {isFr ? 'modèles' : 'models'}</p>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </section>
     </div>

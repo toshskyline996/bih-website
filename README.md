@@ -1,73 +1,121 @@
-# React + TypeScript + Vite
+# Boreal Iron Heavy — B2B Excavator Attachments
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**borealiron.ca** · Made in Yantai, China · Sold in Canada
 
-Currently, two official plugins are available:
+Boreal Iron Heavy (BIH) manufactures and sells heavy-duty excavator attachments for the Canadian construction market. Products are built from Q355 HSLA steel with Hardox 450 wear surfaces, certified CE / ISO 9001 / EN 474, and shipped from Yantai Port.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Product Catalogue
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Category | SKUs | Tonnage Range |
+|---|---|---|
+| Excavator Buckets | 3 | 1–50T |
+| Rake / Skeleton Buckets | 1 | 5–25T |
+| Hydraulic Breakers | 2 | 2–30T |
+| Quick Couplers | 1 | 5–25T |
+| Hydraulic Thumbs | 1 | 5–25T |
+| Rippers | 1 | 12–30T |
+| Earth Augers | 1 | 5–25T |
 
-## Expanding the ESLint configuration
+OEM compatibility: CAT, John Deere, Komatsu, Kubota, Volvo, Hitachi, Bobcat
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Tech Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 + TypeScript + Vite 6 |
+| Styling | TailwindCSS 4 + shadcn/ui (Radix) |
+| Routing | React Router 7 |
+| Payments | Stripe (CAD) |
+| Accounting sync | QuickBooks Online via OAuth2 |
+| Shipping rates | Manitoulin Transport API (placeholder) |
+| Deployment | Cloudflare Workers (edge) |
+| Forms | Web3Forms |
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## Pages
+
+- `/` — Homepage: hero, value props, product grid, material excellence
+- `/products` — Full catalogue with category filter
+- `/products/:slug` — Product detail: specs, material, OEM compat, quote form, nameplate badge
+- `/compatibility` — OEM compatibility tool: filter by brand/tonnage
+- `/steel` — Q355 vs ASTM technical comparison
+- `/factory` — Yantai factory story, export routes, production timeline
+
+---
+
+## Local Development
+
+```bash
+npm install
+cp .env.example .env.local   # fill in keys
+npm run dev                  # Vite dev server at localhost:5173
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Environment Variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Yes | Stripe front-end key |
+| `VITE_WEB3FORMS_KEY` | Yes | Web3Forms access key for contact/quote forms |
+| `STRIPE_SECRET_KEY` | Yes | Stripe server-side key (Workers only) |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Cloudflare secrets (set via `wrangler secret put`):
+- `STRIPE_SECRET_KEY`
+- `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REFRESH_TOKEN`, `QBO_REALM_ID`
+
+---
+
+## Deployment
+
+Production runs on Cloudflare Workers with edge-side API routes.
+
+```bash
+npm run build       # Vite build → dist/
+npm run deploy      # wrangler deploy to Cloudflare
 ```
+
+API functions live in `functions/api/`:
+- `create-payment-intent.ts` — Stripe payment intent
+- `qbo-sync.ts` — QuickBooks Online order sync
+- `shipping-rates.ts` — Manitoulin shipping calculator
+
+---
+
+## Naming System
+
+Products follow the scheme `BIH-[CAT]-[SUB][TT]`:
+
+```
+BIH-EXC-HD12   Excavator bucket, heavy duty, 12T class
+BIH-BRK-SM02   Hydraulic breaker, small, 2T class
+BIH-CPL-HY05   Quick coupler, hydraulic, 5T class
+```
+
+Physical nameplates (90×50mm laser-cut aluminium) use `nameplate-template.svg`.
+
+---
+
+## Project Structure
+
+```
+src/
+  app/
+    components/     Navbar, Footer, NameplateBadge, ...
+    data/           products.ts — single source of truth for all SKUs
+    hooks/          useCart, useLanguage, ...
+    pages/          HomePage, ProductsPage, ProductDetailPage, ...
+  styles/
+functions/api/      Cloudflare Workers edge functions
+public/             Static assets, favicon, banner
+```
+
+---
+
+## Language
+
+All UI is bilingual **EN / FR** (Canadian French). Language toggle in Navbar. Translation strings are inline per component — no i18n library dependency.
