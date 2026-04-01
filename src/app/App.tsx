@@ -3,19 +3,36 @@ import { RouterProvider } from 'react-router';
 import { createBrowserRouter } from 'react-router';
 import { Root } from './Root';
 
-const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
-const ProductsPage = lazy(() => import('./pages/ProductsPage').then(m => ({ default: m.ProductsPage })));
-const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
-const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
-const SteelSpecPage = lazy(() => import('./pages/SteelSpecPage').then(m => ({ default: m.SteelSpecPage })));
-const ContactPage = lazy(() => import('./pages/ContactPage').then(m => ({ default: m.ContactPage })));
-const QuoteBuilderPage   = lazy(() => import('./pages/QuoteBuilderPage').then(m => ({ default: m.QuoteBuilderPage })));
-const CartPage           = lazy(() => import('./pages/CartPage').then(m => ({ default: m.CartPage })));
-const CheckoutPage       = lazy(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
-const OrderSuccessPage      = lazy(() => import('./pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
-const CompatibilityPage     = lazy(() => import('./pages/CompatibilityPage').then(m => ({ default: m.CompatibilityPage })));
-const FactoryPage           = lazy(() => import('./pages/FactoryPage').then(m => ({ default: m.FactoryPage })));
-const BrandLandingPage      = lazy(() => import('./pages/BrandLandingPage').then(m => ({ default: m.BrandLandingPage })));
+// Auto-reload once when a lazy chunk fails to fetch (stale deployment cache).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(() =>
+    factory().catch((err: unknown) => {
+      const key = 'chunk-reload-attempted';
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
+        window.location.reload();
+      }
+      return Promise.reject(err);
+    })
+  );
+}
+
+const HomePage          = lazyWithRetry(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
+const ProductsPage      = lazyWithRetry(() => import('./pages/ProductsPage').then(m => ({ default: m.ProductsPage })));
+const ProductDetailPage = lazyWithRetry(() => import('./pages/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
+const AboutPage         = lazyWithRetry(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
+const SteelSpecPage     = lazyWithRetry(() => import('./pages/SteelSpecPage').then(m => ({ default: m.SteelSpecPage })));
+const ContactPage       = lazyWithRetry(() => import('./pages/ContactPage').then(m => ({ default: m.ContactPage })));
+const QuoteBuilderPage  = lazyWithRetry(() => import('./pages/QuoteBuilderPage').then(m => ({ default: m.QuoteBuilderPage })));
+const CartPage          = lazyWithRetry(() => import('./pages/CartPage').then(m => ({ default: m.CartPage })));
+const CheckoutPage      = lazyWithRetry(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
+const OrderSuccessPage  = lazyWithRetry(() => import('./pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
+const CompatibilityPage = lazyWithRetry(() => import('./pages/CompatibilityPage').then(m => ({ default: m.CompatibilityPage })));
+const FactoryPage       = lazyWithRetry(() => import('./pages/FactoryPage').then(m => ({ default: m.FactoryPage })));
+const BrandLandingPage  = lazyWithRetry(() => import('./pages/BrandLandingPage').then(m => ({ default: m.BrandLandingPage })));
 
 const PageLoader = () => <div style={{ minHeight: '60vh', backgroundColor: '#111' }} />;
 
