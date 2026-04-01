@@ -1,11 +1,23 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
-import { Search, ChevronDown, CheckCircle2, AlertCircle, ArrowRight, X } from 'lucide-react';
+import { Search, ChevronDown, CheckCircle2, AlertCircle, ArrowRight, X, Tag } from 'lucide-react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { brandData, type BrandData, type MachineModel } from '../data/compatibility';
 import { products, type Product } from '../data/products';
 
 const IL = { fontFamily: "'Inter', sans-serif" };
+
+// ─── Analytics helper ────────────────────────────────────────────────────────
+function fireCompatEvent(payload: Record<string, unknown>) {
+  fetch('https://n8n.freightracing.ca/webhook/bih-compat-event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...payload, ts: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
+// ─── localStorage key ─────────────────────────────────────────────────────────
+const LS_KEY = 'bih-compat-last';
 
 // ─── Category display helpers ─────────────────────────────────────────────────
 const categoryLabel: Record<string, string> = {
@@ -36,8 +48,23 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
     lang,
   );
 
-  const [selectedBrand, setSelectedBrand] = useState<BrandData | null>(null);
-  const [selectedModel, setSelectedModel] = useState<MachineModel | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<BrandData | null>(() => {
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (!saved) return null;
+      const { brandName } = JSON.parse(saved) as { brandName: string; modelName: string };
+      return brandData.find((b) => b.brand === brandName) ?? null;
+    } catch { return null; }
+  });
+  const [selectedModel, setSelectedModel] = useState<MachineModel | null>(() => {
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (!saved) return null;
+      const { brandName, modelName } = JSON.parse(saved) as { brandName: string; modelName: string };
+      const brand = brandData.find((b) => b.brand === brandName);
+      return brand?.models.find((m) => m.model === modelName) ?? null;
+    } catch { return null; }
+  });
   const [brandOpen, setBrandOpen]         = useState(false);
   const [modelOpen, setModelOpen]         = useState(false);
   const [search, setSearch]               = useState('');
@@ -58,6 +85,33 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
         selectedModel.tonnage <= p.tonnageRange[1],
     );
   }, [selectedModel]);
+
+  useEffect(() => {
+    if (selectedBrand && selectedModel) {
+      localStorage.setItem(LS_KEY, JSON.stringify({ brandName: selectedBrand.brand, modelName: selectedModel.model }));
+    } else if (!selectedBrand) {
+      localStorage.removeItem(LS_KEY);
+    }
+  }, [selectedBrand, selectedModel]);
+
+  const handleBrandSelect = useCallback((b: BrandData | null) => {
+    setSelectedBrand(b);
+    setSelectedModel(null);
+    setSearch('');
+    if (b) fireCompatEvent({ event: 'brand_selected', brand: b.shortName });
+  }, []);
+
+  const handleModelSelect = useCallback((m: MachineModel, brand: BrandData) => {
+    setSelectedModel(m);
+    setModelOpen(false);
+    const productCount = products.filter(
+      (p) => m.tonnage >= p.tonnageRange[0] && m.tonnage <= p.tonnageRange[1]
+    ).length;
+    fireCompatEvent({ event: 'model_selected', brand: brand.shortName, model: m.model, tonnage: m.tonnage, productCount });
+    if (productCount === 0) {
+      fireCompatEvent({ event: 'no_results', brand: brand.shortName, model: m.model, tonnage: m.tonnage });
+    }
+  }, []);
 
   const reset = () => {
     setSelectedBrand(null);
@@ -98,7 +152,7 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
               return (
                 <button
                   key={b.brand}
-                  onClick={() => { setSelectedBrand(isActive ? null : b); setSelectedModel(null); setSearch(''); }}
+                  onClick={() => handleBrandSelect(isActive ? null : b)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '7px',
                     padding: '8px 16px',
@@ -122,6 +176,8 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
               'CAT': 'cat', 'Komatsu': 'komatsu', 'Volvo': 'volvo',
               'Hitachi': 'hitachi', 'John Deere': 'john-deere',
               'Kubota': 'kubota', 'Bobcat': 'bobcat',
+              'Doosan': 'doosan', 'Hyundai': 'hyundai', 'Kobelco': 'kobelco',
+              'Case': 'case', 'Sany': 'sany',
             };
             const slug = slugMap[selectedBrand.shortName];
             return (
@@ -163,7 +219,7 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
                     {brandData.map((b) => (
                       <button
                         key={b.brand}
-                        onClick={() => { setSelectedBrand(b); setSelectedModel(null); setBrandOpen(false); setSearch(''); }}
+                        onClick={() => { handleBrandSelect(b); setBrandOpen(false); }}
                         style={{ width: '100%', padding: '11px 14px', textAlign: 'left', backgroundColor: selectedBrand?.brand === b.brand ? '#333' : 'transparent', color: '#fff', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', borderBottom: '1px solid #2a2a2a' }}
                       >
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: b.color, flexShrink: 0 }} />
@@ -208,7 +264,7 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
                       {filteredBrandModels.map((m) => (
                         <button
                           key={m.model}
-                          onClick={() => { setSelectedModel(m); setModelOpen(false); }}
+                          onClick={() => { if (selectedBrand) handleModelSelect(m, selectedBrand); }}
                           style={{ width: '100%', padding: '10px 14px', textAlign: 'left', backgroundColor: selectedModel?.model === m.model ? '#333' : 'transparent', color: '#fff', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 'none', borderBottom: '1px solid #222' }}
                         >
                           <span>{m.model}</span>
@@ -285,7 +341,8 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
             {compatibleProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {compatibleProducts.map((p) => (
-                  <ProductCard key={p.id} product={p} isFr={isFr} machine={selectedModel} brandShort={selectedBrand?.shortName ?? ''} />
+                  <ProductCard key={p.id} product={p} isFr={isFr} machine={selectedModel} brandShort={selectedBrand?.shortName ?? ''}
+                    onProductClick={() => fireCompatEvent({ event: 'product_clicked', brand: selectedBrand?.shortName, model: selectedModel.model, productId: p.id, productName: p.name })} />
                 ))}
               </div>
             ) : (
@@ -330,19 +387,37 @@ export function CompatibilityPage({ lang = 'en' }: { lang?: string }) {
 }
 
 // ─── Product result card ───────────────────────────────────────────────────────
-function ProductCard({ product, isFr, machine, brandShort }: {
+function ProductCard({ product, isFr, machine, brandShort, onProductClick }: {
   product: Product; isFr: boolean; machine: MachineModel; brandShort: string;
+  onProductClick: () => void;
 }) {
   const label = isFr ? categoryLabelFr[product.category] : categoryLabel[product.category];
+
+  // Pin-spec fit check: product stores pin diameter in specs; cross-check arm pin
+  const productPinMin = product.category === 'bucket' || product.category === 'rack-bucket'
+    ? product.tonnageRange[0] <= 5 ? 30 : product.tonnageRange[0] <= 12 ? 50 : 65
+    : null;
+  const productPinMax = product.category === 'bucket' || product.category === 'rack-bucket'
+    ? product.tonnageRange[0] <= 5 ? 45 : product.tonnageRange[0] <= 12 ? 62 : 100
+    : null;
+  const pinVerifyNeeded = productPinMin !== null && productPinMax !== null
+    ? machine.armPinDiamMm < productPinMin || machine.armPinDiamMm > productPinMax
+    : false;
+
+  const quoteParams = new URLSearchParams({
+    product: product.id,
+    machine: `${brandShort} ${machine.model}`,
+  }).toString();
+
   return (
-    <Link
-      to={`/products/${product.slug}`}
-      style={{ textDecoration: 'none', display: 'block' }}
+    <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', transition: 'border-color 0.2s' }}
+      onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = '#FFC500')}
+      onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = '#2a2a2a')}
     >
-      <div
-        style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', padding: '20px 22px', transition: 'border-color 0.2s', cursor: 'pointer' }}
-        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = '#FFC500')}
-        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = '#2a2a2a')}
+      <Link
+        to={`/products/${product.slug}`}
+        style={{ textDecoration: 'none', display: 'block', padding: '20px 22px 14px' }}
+        onClick={onProductClick}
       >
         <div className="flex items-start justify-between mb-3">
           <div>
@@ -362,14 +437,28 @@ function ProductCard({ product, isFr, machine, brandShort }: {
         </div>
 
         {/* Fit badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 10px', backgroundColor: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.2)', marginBottom: '14px' }}>
-          <CheckCircle2 size={12} color="#4ade80" />
-          <p style={{ fontSize: '11px', color: '#4ade80', fontWeight: 500 }}>
-            {isFr
-              ? `Compatible ${brandShort} ${machine.model} — ajustement direct`
-              : `Fits ${brandShort} ${machine.model} — direct-fit`}
-          </p>
-        </div>
+        {pinVerifyNeeded ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 10px', backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', marginBottom: '10px' }}>
+            <AlertCircle size={12} color="#facc15" />
+            <p style={{ fontSize: '11px', color: '#facc15', fontWeight: 500 }}>
+              {isFr ? `Vérifier les axes — ${machine.armPinDiamMm}mm Ø machine` : `Verify pin dims — machine is ${machine.armPinDiamMm}mm Ø`}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 10px', backgroundColor: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.2)', marginBottom: '10px' }}>
+            <CheckCircle2 size={12} color="#4ade80" />
+            <p style={{ fontSize: '11px', color: '#4ade80', fontWeight: 500 }}>
+              {isFr
+                ? `Compatible ${brandShort} ${machine.model} — ajustement direct`
+                : `Fits ${brandShort} ${machine.model} — direct-fit`}
+            </p>
+          </div>
+        )}
+
+        {/* Pin spec detail */}
+        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', fontWeight: 300, marginBottom: '12px' }}>
+          {isFr ? 'Axe machine' : 'Machine pin'}: {machine.armPinDiamMm}mm Ø · {machine.pinSpacingMm}mm {isFr ? 'entraxe' : 'spacing'}
+        </p>
 
         <div className="flex items-center justify-between">
           <p style={{ fontSize: '16px', fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>
@@ -379,8 +468,20 @@ function ProductCard({ product, isFr, machine, brandShort }: {
             {isFr ? 'Voir' : 'View'} <ArrowRight size={11} />
           </span>
         </div>
-      </div>
-    </Link>
+      </Link>
+
+      {/* Quote shortcut */}
+      <Link
+        to={`/contact?${quoteParams}`}
+        onClick={onProductClick}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px 22px', borderTop: '1px solid #2a2a2a', backgroundColor: 'rgba(255,197,0,0.06)', color: '#FFC500', fontSize: '10px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', textDecoration: 'none', transition: 'background-color 0.15s' }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,197,0,0.12)')}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,197,0,0.06)')}
+      >
+        <Tag size={11} />
+        {isFr ? `Devis pour ${brandShort} ${machine.model}` : `Get Quote — ${brandShort} ${machine.model}`}
+      </Link>
+    </div>
   );
 }
 

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { products } from '../data/products';
 
@@ -33,9 +34,29 @@ const WEB3FORMS_KEY = import.meta.env.VITE_WEB3FORMS_KEY as string;
 export function ContactPage({ lang = 'en' }: { lang?: string }) {
   const isFr = lang === 'fr';
   usePageTitle('Request a Quote', 'Demander un Devis', lang);
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', product: '', quantity: '', message: '' });
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [prefilledFrom, setPrefilledFrom] = useState<string | null>(null);
+
+  useEffect(() => {
+    const productParam = searchParams.get('product');
+    const machineParam = searchParams.get('machine');
+    if (productParam || machineParam) {
+      const productName = productParam
+        ? products.find((p) => p.id === productParam)?.name ?? productParam
+        : '';
+      setForm((prev) => ({
+        ...prev,
+        product: productParam ?? '',
+        message: machineParam
+          ? `Quoting for: ${machineParam}${productName ? ` — ${productName}` : ''}\n\n`
+          : prev.message,
+      }));
+      if (machineParam) setPrefilledFrom(machineParam);
+    }
+  }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,6 +169,23 @@ export function ContactPage({ lang = 'en' }: { lang?: string }) {
                   </button>
                 </div>
               ) : (
+                <>
+                {prefilledFrom && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#0369a1', fontWeight: 500, letterSpacing: '0.05em' }}>
+                      {isFr
+                        ? `✓ Pré-rempli depuis le Vérificateur de Compatibilité — ${prefilledFrom}`
+                        : `✓ Pre-filled from Compatibility Finder — ${prefilledFrom}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPrefilledFrom(null)}
+                      style={{ marginLeft: 'auto', fontSize: '10px', color: '#0369a1', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7 }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
@@ -218,6 +256,7 @@ export function ContactPage({ lang = 'en' }: { lang?: string }) {
                     </p>
                   </div>
                 </form>
+                </>
               )}
             </div>
           </div>

@@ -1,0 +1,169 @@
+{
+  "name": "WF3 — Compat Analytics (Receive + Weekly Report)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bih-compat-event",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-compat",
+      "name": "Webhook — Compat Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "bih-compat-event"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $vars.COMPAT_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "BIH Compat Events",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.body.ts }}",
+            "event": "={{ $json.body.event }}",
+            "brand": "={{ $json.body.brand ?? '' }}",
+            "model": "={{ $json.body.model ?? '' }}",
+            "tonnage": "={{ $json.body.tonnage ?? '' }}",
+            "productCount": "={{ $json.body.productCount ?? '' }}",
+            "productId": "={{ $json.body.productId ?? '' }}",
+            "productName": "={{ $json.body.productName ?? '' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "sheets-append",
+      "name": "Google Sheets — Append Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [1],
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "cron-weekly",
+      "name": "Cron — Monday 8AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 520]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $vars.COMPAT_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "BIH Compat Events",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "sheets-read",
+      "name": "Google Sheets — Read All",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [480, 520]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate last 7 days of compat events into a weekly summary\nconst rows = $input.all().map(r => r.json);\nconst cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();\nconst week = rows.filter(r => r.timestamp && r.timestamp >= cutoff);\n\nif (week.length === 0) {\n  return [{ json: { summary: 'No compatibility searches this week.' } }];\n}\n\n// Counts\nconst totalSearches = week.filter(r => r.event === 'model_selected').length;\nconst noResults = week.filter(r => r.event === 'no_results').length;\nconst clicks = week.filter(r => r.event === 'product_clicked').length;\n\n// Top brands\nconst brandCounts = {};\nweek.filter(r => r.event === 'model_selected').forEach(r => {\n  brandCounts[r.brand] = (brandCounts[r.brand] || 0) + 1;\n});\nconst topBrands = Object.entries(brandCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([b, n]) => `${b} (${n})`)\n  .join(', ');\n\n// Top models\nconst modelCounts = {};\nweek.filter(r => r.event === 'model_selected').forEach(r => {\n  const key = `${r.brand} ${r.model}`;\n  modelCounts[key] = (modelCounts[key] || 0) + 1;\n});\nconst topModels = Object.entries(modelCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([m, n]) => `${m} (${n})`)\n  .join('\\n  • ');\n\n// No-result models\nconst noResultModels = [...new Set(\n  week.filter(r => r.event === 'no_results').map(r => `${r.brand} ${r.model} (${r.tonnage}T)`)\n)].join(', ') || 'None';\n\n// Top clicked products\nconst productCounts = {};\nweek.filter(r => r.event === 'product_clicked').forEach(r => {\n  productCounts[r.productName] = (productCounts[r.productName] || 0) + 1;\n});\nconst topProducts = Object.entries(productCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 3)\n  .map(([p, n]) => `${p} (${n})`)\n  .join(', ') || 'None';\n\nconst summary = `📊 BIH Compatibility Finder — Weekly Report\n` +\n  `Week ending: ${new Date().toLocaleDateString('en-CA')}\\n\\n` +\n  `🔍 Total model searches: ${totalSearches}\\n` +\n  `✅ Product clicks: ${clicks}\\n` +\n  `⚠️  No-result searches: ${noResults}\\n\\n` +\n  `🏆 Top brands searched:\\n  ${topBrands}\\n\\n` +\n  `🔧 Top models searched:\\n  • ${topModels}\\n\\n` +\n  `❌ Models with no product match (add to catalog?):\\n  ${noResultModels}\\n\\n` +\n  `🛒 Most-clicked products:\\n  ${topProducts}`;\n\nreturn [{ json: { summary } }];"
+      },
+      "id": "code-aggregate",
+      "name": "Code — Aggregate Weekly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 520]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.summary }}",
+        "additionalFields": {}
+      },
+      "id": "telegram-report",
+      "name": "Telegram — Send Weekly Report",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [960, 460]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:18789/hooks/agent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer bih-hooks-n8n-7f3a9c2d1e8b" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"请分析以下 BIH 兼容性周报数据，给出深度业务洞察和具体建议。重点关注：1) 哪些型号搜索量高但无匹配产品（库存缺口机会）；2) 品牌/型号趋势是否说明目标市场在变化；3) 给出 1-3 条可操作的产品或营销建议。数据摘要如下：\\n\\n{{ $json.summary }}\",\n  \"name\": \"n8n-compat-weekly\",\n  \"deliver\": true,\n  \"channel\": \"telegram\",\n  \"to\": \"{{ $vars.TELEGRAM_CHAT_ID }}\",\n  \"model\": \"anyrouter/claude-opus-4-6\",\n  \"thinking\": \"medium\",\n  \"timeoutSeconds\": 120\n}",
+        "options": {}
+      },
+      "id": "openclaw-ai-analysis",
+      "name": "OpenClaw — AI Business Insights",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 600]
+    }
+  ],
+  "connections": {
+    "Webhook — Compat Event": {
+      "main": [
+        [{ "node": "Google Sheets — Append Row", "type": "main", "index": 0 }]
+      ]
+    },
+    "Cron — Monday 8AM": {
+      "main": [
+        [{ "node": "Google Sheets — Read All", "type": "main", "index": 0 }]
+      ]
+    },
+    "Google Sheets — Read All": {
+      "main": [
+        [{ "node": "Code — Aggregate Weekly", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code — Aggregate Weekly": {
+      "main": [
+        [
+          { "node": "Telegram — Send Weekly Report", "type": "main", "index": 0 },
+          { "node": "OpenClaw — AI Business Insights", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {}
+}

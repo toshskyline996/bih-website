@@ -132,6 +132,76 @@ const bobcatModels: MachineModel[] = [
   { model: 'E145', weightKg: 14_500,tonnage:14.5, armPinDiamMm: 65, boomPinDiamMm: 65, pinSpacingMm: 435, bushingWidthMm: 102},
 ];
 
+// ─── Doosan / Develon ─────────────────────────────────────────────────────────
+const doosanModels: MachineModel[] = [
+  { model: 'DX17Z',    weightKg: 1_740,  tonnage: 1.7,  armPinDiamMm: 30, boomPinDiamMm: 30, pinSpacingMm: 215, bushingWidthMm: 58  },
+  { model: 'DX27Z',    weightKg: 2_700,  tonnage: 2.7,  armPinDiamMm: 35, boomPinDiamMm: 35, pinSpacingMm: 248, bushingWidthMm: 64  },
+  { model: 'DX35Z',    weightKg: 3_490,  tonnage: 3.5,  armPinDiamMm: 40, boomPinDiamMm: 40, pinSpacingMm: 275, bushingWidthMm: 70  },
+  { model: 'DX55',     weightKg: 5_500,  tonnage: 5.5,  armPinDiamMm: 50, boomPinDiamMm: 50, pinSpacingMm: 330, bushingWidthMm: 80  },
+  { model: 'DX85R',    weightKg: 8_500,  tonnage: 8.5,  armPinDiamMm: 56, boomPinDiamMm: 56, pinSpacingMm: 375, bushingWidthMm: 88  },
+  { model: 'DX140LC',  weightKg: 14_100, tonnage: 14.1, armPinDiamMm: 65, boomPinDiamMm: 65, pinSpacingMm: 430, bushingWidthMm: 100 },
+  { model: 'DX180LC',  weightKg: 18_200, tonnage: 18.2, armPinDiamMm: 72, boomPinDiamMm: 72, pinSpacingMm: 462, bushingWidthMm: 108 },
+  { model: 'DX225LC',  weightKg: 22_500, tonnage: 22.5, armPinDiamMm: 80, boomPinDiamMm: 80, pinSpacingMm: 492, bushingWidthMm: 115 },
+  { model: 'DX255LC',  weightKg: 25_500, tonnage: 25.5, armPinDiamMm: 85, boomPinDiamMm: 85, pinSpacingMm: 518, bushingWidthMm: 122 },
+  { model: 'DX300LC',  weightKg: 30_200, tonnage: 30.2, armPinDiamMm: 90, boomPinDiamMm: 90, pinSpacingMm: 542, bushingWidthMm: 130 },
+  { model: 'DX380LC',  weightKg: 38_000, tonnage: 38.0, armPinDiamMm: 95, boomPinDiamMm: 95, pinSpacingMm: 572, bushingWidthMm: 140 },
+];
+
+// ─── Hyundai CE ───────────────────────────────────────────────────────────────
+const hyundaiModels: MachineModel[] = [
+  { model: 'R17Z-9A',  weightKg: 1_720,  tonnage: 1.7,  armPinDiamMm: 30, boomPinDiamMm: 30, pinSpacingMm: 215, bushingWidthMm: 58  },
+  { model: 'R35Z-9A',  weightKg: 3_520,  tonnage: 3.5,  armPinDiamMm: 40, boomPinDiamMm: 40, pinSpacingMm: 276, bushingWidthMm: 70  },
+  { model: 'R55-9A',   weightKg: 5_410,  tonnage: 5.4,  armPinDiamMm: 50, boomPinDiamMm: 50, pinSpacingMm: 328, bushingWidthMm: 80  },
+  { model: 'R80-7A',   weightKg: 8_030,  tonnage: 8.0,  armPinDiamMm: 56, boomPinDiamMm: 56, pinSpacingMm: 372, bushingWidthMm: 88  },
+  { model: 'R140LC-9A',weightKg: 14_200, tonnage: 14.2, armPinDiamMm: 65, boomPinDiamMm: 65, pinSpacingMm: 432, bushingWidthMm: 100 },
+  { model: 'R160LC-9A',weightKg: 16_100, tonnage: 16.1, armPinDiamMm: 70, boomPinDiamMm: 70, pinSpacingMm: 448, bushingWidthMm: 104 },
+  { model: 'R210LC-9A',weightKg: 21_000, tonnage: 21.0, armPinDiamMm: 76, boomPinDiamMm: 76, pinSpacingMm: 480, bushingWidthMm: 112 },
+  { model: 'R235LCR-9A',weightKg: 23_800,tonnage: 23.8, armPinDiamMm: 80, boomPinDiamMm: 80, pinSpacingMm: 500, bushingWidthMm: 116 },
+  { model: 'R290LC-9A',weightKg: 29_500, tonnage: 29.5, armPinDiamMm: 90, boomPinDiamMm: 90, pinSpacingMm: 540, bushingWidthMm: 130 },
+  { model: 'R360LC-9A',weightKg: 35_800, tonnage: 35.8, armPinDiamMm: 95, boomPinDiamMm: 95, pinSpacingMm: 565, bushingWidthMm: 138 },
+];
+
+// ─── Kobelco ──────────────────────────────────────────────────────────────────
+const kobelcoModels: MachineModel[] = [
+  { model: 'SK17SR',   weightKg: 1_730,  tonnage: 1.7,  armPinDiamMm: 30, boomPinDiamMm: 30, pinSpacingMm: 215, bushingWidthMm: 58  },
+  { model: 'SK30SR',   weightKg: 3_010,  tonnage: 3.0,  armPinDiamMm: 38, boomPinDiamMm: 38, pinSpacingMm: 260, bushingWidthMm: 66  },
+  { model: 'SK55SRX',  weightKg: 5_520,  tonnage: 5.5,  armPinDiamMm: 50, boomPinDiamMm: 50, pinSpacingMm: 330, bushingWidthMm: 80  },
+  { model: 'SK85CS',   weightKg: 8_520,  tonnage: 8.5,  armPinDiamMm: 56, boomPinDiamMm: 56, pinSpacingMm: 376, bushingWidthMm: 88  },
+  { model: 'SK140SR',  weightKg: 13_900, tonnage: 13.9, armPinDiamMm: 65, boomPinDiamMm: 65, pinSpacingMm: 428, bushingWidthMm: 100 },
+  { model: 'SK170LC',  weightKg: 17_000, tonnage: 17.0, armPinDiamMm: 70, boomPinDiamMm: 70, pinSpacingMm: 452, bushingWidthMm: 106 },
+  { model: 'SK210LC',  weightKg: 20_900, tonnage: 20.9, armPinDiamMm: 75, boomPinDiamMm: 75, pinSpacingMm: 480, bushingWidthMm: 112 },
+  { model: 'SK260LC',  weightKg: 25_900, tonnage: 25.9, armPinDiamMm: 85, boomPinDiamMm: 85, pinSpacingMm: 520, bushingWidthMm: 122 },
+  { model: 'SK350LC',  weightKg: 34_700, tonnage: 34.7, armPinDiamMm: 95, boomPinDiamMm: 95, pinSpacingMm: 560, bushingWidthMm: 138 },
+];
+
+// ─── Case CE ──────────────────────────────────────────────────────────────────
+const caseModels: MachineModel[] = [
+  { model: 'CX17C',    weightKg: 1_760,  tonnage: 1.8,  armPinDiamMm: 30, boomPinDiamMm: 30, pinSpacingMm: 218, bushingWidthMm: 58  },
+  { model: 'CX37C',    weightKg: 3_630,  tonnage: 3.6,  armPinDiamMm: 40, boomPinDiamMm: 40, pinSpacingMm: 278, bushingWidthMm: 70  },
+  { model: 'CX57C',    weightKg: 5_710,  tonnage: 5.7,  armPinDiamMm: 50, boomPinDiamMm: 50, pinSpacingMm: 335, bushingWidthMm: 82  },
+  { model: 'CX80C',    weightKg: 8_000,  tonnage: 8.0,  armPinDiamMm: 56, boomPinDiamMm: 56, pinSpacingMm: 372, bushingWidthMm: 88  },
+  { model: 'CX130D',   weightKg: 13_100, tonnage: 13.1, armPinDiamMm: 65, boomPinDiamMm: 65, pinSpacingMm: 426, bushingWidthMm: 98  },
+  { model: 'CX160D',   weightKg: 16_200, tonnage: 16.2, armPinDiamMm: 70, boomPinDiamMm: 70, pinSpacingMm: 450, bushingWidthMm: 105 },
+  { model: 'CX210D',   weightKg: 21_200, tonnage: 21.2, armPinDiamMm: 75, boomPinDiamMm: 75, pinSpacingMm: 480, bushingWidthMm: 112 },
+  { model: 'CX250D',   weightKg: 24_800, tonnage: 24.8, armPinDiamMm: 85, boomPinDiamMm: 85, pinSpacingMm: 510, bushingWidthMm: 120 },
+  { model: 'CX300D',   weightKg: 30_000, tonnage: 30.0, armPinDiamMm: 90, boomPinDiamMm: 90, pinSpacingMm: 540, bushingWidthMm: 130 },
+  { model: 'CX370D',   weightKg: 37_500, tonnage: 37.5, armPinDiamMm: 95, boomPinDiamMm: 95, pinSpacingMm: 570, bushingWidthMm: 140 },
+];
+
+// ─── Sany ─────────────────────────────────────────────────────────────────────
+const sanyModels: MachineModel[] = [
+  { model: 'SY16C',    weightKg: 1_650,  tonnage: 1.7,  armPinDiamMm: 30, boomPinDiamMm: 30, pinSpacingMm: 212, bushingWidthMm: 56  },
+  { model: 'SY35U',    weightKg: 3_500,  tonnage: 3.5,  armPinDiamMm: 40, boomPinDiamMm: 40, pinSpacingMm: 275, bushingWidthMm: 70  },
+  { model: 'SY55C',    weightKg: 5_500,  tonnage: 5.5,  armPinDiamMm: 50, boomPinDiamMm: 50, pinSpacingMm: 330, bushingWidthMm: 80  },
+  { model: 'SY75C',    weightKg: 7_550,  tonnage: 7.6,  armPinDiamMm: 55, boomPinDiamMm: 55, pinSpacingMm: 368, bushingWidthMm: 88  },
+  { model: 'SY135C',   weightKg: 13_500, tonnage: 13.5, armPinDiamMm: 65, boomPinDiamMm: 65, pinSpacingMm: 428, bushingWidthMm: 100 },
+  { model: 'SY155H',   weightKg: 15_500, tonnage: 15.5, armPinDiamMm: 70, boomPinDiamMm: 70, pinSpacingMm: 445, bushingWidthMm: 104 },
+  { model: 'SY215C',   weightKg: 21_500, tonnage: 21.5, armPinDiamMm: 76, boomPinDiamMm: 76, pinSpacingMm: 482, bushingWidthMm: 112 },
+  { model: 'SY265C',   weightKg: 26_500, tonnage: 26.5, armPinDiamMm: 85, boomPinDiamMm: 85, pinSpacingMm: 522, bushingWidthMm: 124 },
+  { model: 'SY305H',   weightKg: 30_500, tonnage: 30.5, armPinDiamMm: 90, boomPinDiamMm: 90, pinSpacingMm: 545, bushingWidthMm: 130 },
+  { model: 'SY365H',   weightKg: 36_500, tonnage: 36.5, armPinDiamMm: 95, boomPinDiamMm: 95, pinSpacingMm: 568, bushingWidthMm: 140 },
+];
+
 // ─── Exported brand list ──────────────────────────────────────────────────────
 export const brandData: BrandData[] = [
   { brand: 'Caterpillar (CAT)', shortName: 'CAT',        color: '#FFCD11', models: catModels      },
@@ -141,6 +211,11 @@ export const brandData: BrandData[] = [
   { brand: 'John Deere',        shortName: 'John Deere', color: '#367C2B', models: johnDeereModels},
   { brand: 'Kubota',            shortName: 'Kubota',     color: '#E04B00', models: kubotaModels   },
   { brand: 'Bobcat',            shortName: 'Bobcat',     color: '#F4A823', models: bobcatModels   },
+  { brand: 'Doosan / Develon',  shortName: 'Doosan',     color: '#003087', models: doosanModels   },
+  { brand: 'Hyundai CE',        shortName: 'Hyundai',    color: '#002B5C', models: hyundaiModels  },
+  { brand: 'Kobelco',           shortName: 'Kobelco',    color: '#E60012', models: kobelcoModels  },
+  { brand: 'Case CE',           shortName: 'Case',       color: '#FFD100', models: caseModels     },
+  { brand: 'Sany',              shortName: 'Sany',       color: '#C8102E', models: sanyModels     },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
