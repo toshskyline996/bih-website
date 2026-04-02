@@ -47,7 +47,48 @@
       "name": "Google Sheets — Append Row",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
-      "position": [480, 300]
+      "position": [480, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform webhook body → D1 /ingest/compat field names\nconst body = $json.body || {};\n\n// Required fields\nif (!body.event || !body.ts) return [];\nconst validEvents = ['brand_selected', 'model_selected', 'no_results', 'product_clicked'];\nif (!validEvents.includes(body.event)) return [];\n\nconst out = {\n  ts:    body.ts,\n  event: body.event\n};\n\n// Optional fields — only include when present\nif (body.brand)                          out.brand         = String(body.brand);\nif (body.model)                          out.model         = String(body.model);\nif (body.tonnage != null && body.tonnage !== '')  out.tonnage = Number(body.tonnage);\nif (body.productCount != null)           out.product_count = Number(body.productCount);\nif (body.productId)                      out.product_id    = String(body.productId);\nif (body.productName)                    out.product_name  = String(body.productName);\n\nreturn [{ json: out }];"
+      },
+      "id": "transform-d1",
+      "name": "Transform — D1 Compat Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://intel-api.freightracing.ca/ingest/compat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.BIH_API_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "post-d1-compat",
+      "name": "POST — D1 Compat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 420],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -67,7 +108,7 @@
       "name": "Cron — Monday 8AM",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [240, 520]
+      "position": [240, 660]
     },
     {
       "parameters": {
@@ -88,17 +129,17 @@
       "name": "Google Sheets — Read All",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
-      "position": [480, 520]
+      "position": [480, 660]
     },
     {
       "parameters": {
-        "jsCode": "// Aggregate last 7 days of compat events into a weekly summary\nconst rows = $input.all().map(r => r.json);\nconst cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();\nconst week = rows.filter(r => r.timestamp && r.timestamp >= cutoff);\n\nif (week.length === 0) {\n  return [{ json: { summary: 'No compatibility searches this week.' } }];\n}\n\n// Counts\nconst totalSearches = week.filter(r => r.event === 'model_selected').length;\nconst noResults = week.filter(r => r.event === 'no_results').length;\nconst clicks = week.filter(r => r.event === 'product_clicked').length;\n\n// Top brands\nconst brandCounts = {};\nweek.filter(r => r.event === 'model_selected').forEach(r => {\n  brandCounts[r.brand] = (brandCounts[r.brand] || 0) + 1;\n});\nconst topBrands = Object.entries(brandCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([b, n]) => `${b} (${n})`)\n  .join(', ');\n\n// Top models\nconst modelCounts = {};\nweek.filter(r => r.event === 'model_selected').forEach(r => {\n  const key = `${r.brand} ${r.model}`;\n  modelCounts[key] = (modelCounts[key] || 0) + 1;\n});\nconst topModels = Object.entries(modelCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([m, n]) => `${m} (${n})`)\n  .join('\\n  • ');\n\n// No-result models\nconst noResultModels = [...new Set(\n  week.filter(r => r.event === 'no_results').map(r => `${r.brand} ${r.model} (${r.tonnage}T)`)\n)].join(', ') || 'None';\n\n// Top clicked products\nconst productCounts = {};\nweek.filter(r => r.event === 'product_clicked').forEach(r => {\n  productCounts[r.productName] = (productCounts[r.productName] || 0) + 1;\n});\nconst topProducts = Object.entries(productCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 3)\n  .map(([p, n]) => `${p} (${n})`)\n  .join(', ') || 'None';\n\nconst summary = `📊 BIH Compatibility Finder — Weekly Report\n` +\n  `Week ending: ${new Date().toLocaleDateString('en-CA')}\\n\\n` +\n  `🔍 Total model searches: ${totalSearches}\\n` +\n  `✅ Product clicks: ${clicks}\\n` +\n  `⚠️  No-result searches: ${noResults}\\n\\n` +\n  `🏆 Top brands searched:\\n  ${topBrands}\\n\\n` +\n  `🔧 Top models searched:\\n  • ${topModels}\\n\\n` +\n  `❌ Models with no product match (add to catalog?):\\n  ${noResultModels}\\n\\n` +\n  `🛒 Most-clicked products:\\n  ${topProducts}`;\n\nreturn [{ json: { summary } }];"
+        "jsCode": "// Aggregate last 7 days of compat events into a weekly summary\nconst rows = $input.all().map(r => r.json);\nconst cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();\nconst week = rows.filter(r => r.timestamp && r.timestamp >= cutoff);\n\nif (week.length === 0) {\n  return [{ json: { summary: 'No compatibility searches this week.' } }];\n}\n\n// Counts\nconst totalSearches = week.filter(r => r.event === 'model_selected').length;\nconst noResults = week.filter(r => r.event === 'no_results').length;\nconst clicks = week.filter(r => r.event === 'product_clicked').length;\n\n// Top brands\nconst brandCounts = {};\nweek.filter(r => r.event === 'model_selected').forEach(r => {\n  brandCounts[r.brand] = (brandCounts[r.brand] || 0) + 1;\n});\nconst topBrands = Object.entries(brandCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([b, n]) => `${b} (${n})`)\n  .join(', ');\n\n// Top models\nconst modelCounts = {};\nweek.filter(r => r.event === 'model_selected').forEach(r => {\n  const key = `${r.brand} ${r.model}`;\n  modelCounts[key] = (modelCounts[key] || 0) + 1;\n});\nconst topModels = Object.entries(modelCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([m, n]) => `${m} (${n})`)\n  .join('\\n  • ');\n\n// No-result models\nconst noResultModels = [...new Set(\n  week.filter(r => r.event === 'no_results').map(r => `${r.brand} ${r.model} (${r.tonnage}T)`)\n)].join(', ') || 'None';\n\n// Top clicked products\nconst productCounts = {};\nweek.filter(r => r.event === 'product_clicked').forEach(r => {\n  productCounts[r.productName] = (productCounts[r.productName] || 0) + 1;\n});\nconst topProducts = Object.entries(productCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 3)\n  .map(([p, n]) => `${p} (${n})`)\n  .join(', ') || 'None';\n\nconst summary = `📊 BIH Compatibility Finder — Weekly Report\\n` +\n  `Week ending: ${new Date().toLocaleDateString('en-CA')}\\n\\n` +\n  `🔍 Total model searches: ${totalSearches}\\n` +\n  `❌ No-result searches: ${noResults}\\n` +\n  `👆 Product clicks: ${clicks}\\n\\n` +\n  `🏆 Top brands:\\n  • ${topBrands || 'None'}\\n\\n` +\n  `🔧 Top models:\\n  • ${topModels || 'None'}\\n\\n` +\n  `⚠️ No-match models: ${noResultModels}\\n\\n` +\n  `📦 Top clicked: ${topProducts}`;\n\nreturn [{ json: { summary } }];"
       },
       "id": "code-aggregate",
       "name": "Code — Aggregate Weekly",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 520]
+      "position": [720, 660]
     },
     {
       "parameters": {
@@ -110,7 +151,7 @@
       "name": "Telegram — Send Weekly Report",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
-      "position": [960, 460]
+      "position": [960, 580]
     },
     {
       "parameters": {
@@ -132,13 +173,21 @@
       "name": "OpenClaw — AI Business Insights",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [960, 600]
+      "position": [960, 740]
     }
   ],
   "connections": {
     "Webhook — Compat Event": {
       "main": [
-        [{ "node": "Google Sheets — Append Row", "type": "main", "index": 0 }]
+        [
+          { "node": "Google Sheets — Append Row", "type": "main", "index": 0 },
+          { "node": "Transform — D1 Compat Format", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Transform — D1 Compat Format": {
+      "main": [
+        [{ "node": "POST — D1 Compat", "type": "main", "index": 0 }]
       ]
     },
     "Cron — Monday 8AM": {

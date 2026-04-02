@@ -13,11 +13,11 @@
         "simple": false,
         "options": {}
       },
-      "id": "wf6-n1",
+      "id": "wf6-n1a",
       "name": "Gmail — RBA Alerts",
       "type": "n8n-nodes-base.gmailTrigger",
       "typeVersion": 1,
-      "position": [0, 300],
+      "position": [0, 200],
       "webhookId": "wf6-gmail-rba",
       "credentials": {
         "gmailOAuth2": {
@@ -27,13 +27,47 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── RBA / IronPlanet Email Parser ─────────────────────────────────\n// Handles: saved-search digest emails, price-drop alerts, lot alerts\n// Strategies applied in order:\n//   1. Anchor-tag scan: find listing URLs → extract title + price from context\n//   2. Fallback: whole-email single-listing (short price-drop alerts)\n\nconst html   = $input.item.json.html   || $input.item.json.text || '';\nconst subject = ($input.item.json.subject || '').trim();\nconst emailId = $input.item.json.id || String(Date.now());\nconst today   = new Date().toISOString().slice(0, 10);\n\n// HTML entity decoder\nconst decode = (s) => (s || '')\n  .replace(/&amp;/g,  '&').replace(/&lt;/g,  '<').replace(/&gt;/g,  '>')\n  .replace(/&quot;/g, '\"').replace(/&#39;/g, \"'\").replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, '').replace(/\\s+/g, ' ').trim();\n\nconst seen    = new Set();\nconst results = [];\n\n// ── Strategy 1: anchor-tag extraction ─────────────────────────────\nif (html.length > 50) {\n  // Match <a href=\"...(rbauction|ironplanet)...DIGITS...\">...</a>\n  const anchorRe = /<a\\b[^>]+href=[\"']([^\"']*(?:rbauction\\.com|ironplanet\\.com)[^\"']*)([\"'][^>]*)>((?:[\\s\\S](?!<\\/a>))*[\\s\\S]?)<\\/a>/gi;\n  let m;\n\n  while ((m = anchorRe.exec(html)) !== null) {\n    const rawUrl     = decode(m[1]);\n    const anchorHtml = m[3] || '';\n    const anchorText = decode(anchorHtml.replace(/<[^>]+>/g, ' '));\n\n    // Skip navigation / footer links\n    if (/\\/(search|home|register|login|help|about|contact|unsubscribe|category|rss|privacy|terms)\\b/i.test(rawUrl)) continue;\n    // Require anchor text that looks like an equipment title\n    const isEquip = /\\b(19|20)\\d{2}\\b|\\b(bucket|thumb|ripper|auger|coupler|breaker|excavator|attachment|compactor|grapple|hammer|blade|dozer|loader|skid|track)\\b/i.test(anchorText);\n    if (!isEquip || anchorText.length < 8) continue;\n\n    // Canonical URL (strip tracking params)\n    const cleanUrl = rawUrl.split('?')[0];\n    if (seen.has(cleanUrl)) continue;\n    seen.add(cleanUrl);\n\n    // Context window around the anchor for price / location extraction\n    const ctxStart = Math.max(0, m.index - 400);\n    const ctxEnd   = Math.min(html.length, m.index + m[0].length + 800);\n    const ctxText  = html.slice(ctxStart, ctxEnd).replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ');\n\n    // Price extraction — ordered by specificity\n    const pricePatterns = [\n      /Sold\\s+(?:for|price)[^\\d]{0,10}(?:CAD|USD|C)?\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /Final\\s+(?:bid|price)[^\\d]{0,10}\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /(?:CAD|CDN)\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /\\$\\s*([\\d,]+(?:\\.\\d{2})?)\\s*(?:CAD|CDN)/i,\n      /Current\\s+(?:bid|price)[^\\d]{0,10}\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /Opening\\s+bid[^\\d]{0,10}\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /Estimate[^\\d]{0,10}\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /\\$\\s*([\\d,]{3,}(?:\\.\\d{2})?)/\n    ];\n\n    let price_cad = 0;\n    for (const pat of pricePatterns) {\n      const pm = ctxText.match(pat);\n      if (pm) {\n        const p = parseFloat(pm[1].replace(/,/g, ''));\n        if (p >= 50 && p <= 2000000) { price_cad = p; break; }\n      }\n    }\n    if (price_cad === 0) continue; // skip if no valid price found\n\n    // Listing ID — prefer numeric segment from URL, fall back to hash\n    const numericId = rawUrl.match(/\\/(\\d{6,12})(?:\\/|\\?|$)/);\n    const listing_id = numericId\n      ? `RBA-${numericId[1]}`\n      : `RBA-${cleanUrl.replace(/[^a-zA-Z0-9]/g, '').slice(-32)}`;\n\n    // Location extraction\n    const locMatch = ctxText.match(/(?:Location|Lot\\s+Location)[:\\s]+([A-Za-z][A-Za-z ,]{2,48})(?:\\s{2,}|\\|[^|]|$)/i);\n    const location = locMatch ? locMatch[1].trim().slice(0, 100) : undefined;\n\n    results.push({\n      json: {\n        listing_id,\n        title:        anchorText.slice(0, 255),\n        price_cad,\n        sale_date:    today,\n        category_raw: 'email-rba',\n        url:          rawUrl.slice(0, 500),\n        ...(location ? { location } : {})\n      }\n    });\n\n    if (results.length >= 50) break; // safety cap per email\n  }\n}\n\n// ── Strategy 2: whole-email fallback (short price-drop / lot-added alerts) ──\nif (results.length === 0 && html.length > 20) {\n  const bodyText = html.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ');\n  const priceMatch = bodyText.match(/(?:CAD|CDN)?\\$\\s*([\\d,]+(?:\\.\\d{2})?)/);\n  const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0;\n\n  if (price >= 50 && price <= 2000000 && subject.length >= 5) {\n    results.push({\n      json: {\n        listing_id:   `RBA-EMAIL-${emailId}`,\n        title:        subject.slice(0, 255),\n        price_cad:    price,\n        sale_date:    today,\n        category_raw: 'email-fallback',\n        url:          ''\n      }\n    });\n  }\n}\n\nreturn results;"
+        "pollTimes": {
+          "item": [{ "mode": "everyX", "value": 15, "unit": "minutes" }]
+        },
+        "filters": {
+          "sender": "ironplanet.com",
+          "readStatus": "unread"
+        },
+        "simple": false,
+        "options": {}
+      },
+      "id": "wf6-n1b",
+      "name": "Gmail — IronPlanet Alerts",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [0, 420],
+      "webhookId": "wf6-gmail-ironplanet",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail OAuth2 — BIH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "wf6-merge",
+      "name": "Merge — All Alert Emails",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── RBA / IronPlanet Email Parser ─────────────────────────────────\n// Handles: saved-search digest emails, price-drop alerts, lot alerts\n// Strategies applied in order:\n//   1. Anchor-tag scan: find listing URLs → extract title + price from context\n//   2. Fallback: whole-email single-listing (short price-drop alerts)\n\nconst html   = $input.item.json.html   || $input.item.json.text || '';\nconst subject = ($input.item.json.subject || '').trim();\nconst emailId = $input.item.json.id || String(Date.now());\nconst today   = new Date().toISOString().slice(0, 10);\n\n// HTML entity decoder\nconst decode = (s) => (s || '')\n  .replace(/&amp;/g,  '&').replace(/&lt;/g,  '<').replace(/&gt;/g,  '>')\n  .replace(/&quot;/g, '\"').replace(/&#39;/g, \"'\").replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, '').replace(/\\s+/g, ' ').trim();\n\nconst seen    = new Set();\nconst results = [];\n\n// ── Strategy 1: anchor-tag extraction ─────────────────────────────\nif (html.length > 50) {\n  // Match <a href=\"...(rbauction|ironplanet)...DIGITS...\">...</a>\n  const anchorRe = /<a\\b[^>]+href=[\"']([^\"']*(?:rbauction\\.com|ironplanet\\.com)[^\"']*)([\"'][^>]*)>((?:[\\s\\S](?!<\\/a>))*[\\s\\S]?)<\\/a>/gi;\n  let m;\n\n  while ((m = anchorRe.exec(html)) !== null) {\n    const rawUrl     = decode(m[1]);\n    const anchorHtml = m[3] || '';\n    const anchorText = decode(anchorHtml.replace(/<[^>]+>/g, ' '));\n\n    // Skip navigation / footer links\n    if (/\\/(search|home|register|login|help|about|contact|unsubscribe|category|rss|privacy|terms)\\b/i.test(rawUrl)) continue;\n    // Require anchor text that looks like an equipment title\n    const isEquip = /\\b(19|20)\\d{2}\\b|\\b(bucket|thumb|ripper|auger|coupler|breaker|excavator|attachment|compactor|grapple|hammer|blade|dozer|loader|skid|track)\\b/i.test(anchorText);\n    if (!isEquip || anchorText.length < 8) continue;\n\n    // Canonical URL (strip tracking params)\n    const cleanUrl = rawUrl.split('?')[0];\n    if (seen.has(cleanUrl)) continue;\n    seen.add(cleanUrl);\n\n    // Context window around the anchor for price / location extraction\n    const ctxStart = Math.max(0, m.index - 400);\n    const ctxEnd   = Math.min(html.length, m.index + m[0].length + 800);\n    const ctxText  = html.slice(ctxStart, ctxEnd).replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ');\n\n    // Price extraction — ordered by specificity\n    const pricePatterns = [\n      /Sold\\s+(?:for|price)[^\\d]{0,10}(?:CAD|USD|C)?\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /Final\\s+(?:bid|price)[^\\d]{0,10}\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /(?:CAD|CDN)\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /\\$\\s*([\\d,]+(?:\\.\\d{2})?)\\s*(?:CAD|CDN)/i,\n      /Current\\s+(?:bid|price)[^\\d]{0,10}\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /Opening\\s+bid[^\\d]{0,10}\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /Estimate[^\\d]{0,10}\\$?\\s*([\\d,]+(?:\\.\\d{2})?)/i,\n      /\\$\\s*([\\d,]{3,}(?:\\.\\d{2})?)/\n    ];\n\n    let price_cad = 0;\n    for (const pat of pricePatterns) {\n      const pm = ctxText.match(pat);\n      if (pm) {\n        const p = parseFloat(pm[1].replace(/,/g, ''));\n        if (p >= 50 && p <= 2000000) { price_cad = p; break; }\n      }\n    }\n    if (price_cad === 0) continue;\n\n    // Listing ID — prefer numeric segment from URL, fall back to hash\n    const numericId = rawUrl.match(/\\/(\\d{6,12})(?:\\/|\\?|$)/);\n    const listing_id = numericId\n      ? `RBA-${numericId[1]}`\n      : `RBA-${cleanUrl.replace(/[^a-zA-Z0-9]/g, '').slice(-32)}`;\n\n    // Location extraction\n    const locMatch = ctxText.match(/(?:Location|Lot\\s+Location)[:\\s]+([A-Za-z][A-Za-z ,]{2,48})(?:\\s{2,}|\\|[^|]|$)/i);\n    const location = locMatch ? locMatch[1].trim().slice(0, 100) : undefined;\n\n    results.push({\n      json: {\n        listing_id,\n        title:        anchorText.slice(0, 255),\n        price_cad,\n        sale_date:    today,\n        category_raw: 'email-rba',\n        url:          rawUrl.slice(0, 500),\n        ...(location ? { location } : {})\n      }\n    });\n\n    if (results.length >= 50) break;\n  }\n}\n\n// ── Strategy 2: whole-email fallback ──────────────────────────────\nif (results.length === 0 && html.length > 20) {\n  const bodyText = html.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ');\n  const priceMatch = bodyText.match(/(?:CAD|CDN)?\\$\\s*([\\d,]+(?:\\.\\d{2})?)/);\n  const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0;\n\n  if (price >= 50 && price <= 2000000 && subject.length >= 5) {\n    results.push({\n      json: {\n        listing_id:   `RBA-EMAIL-${emailId}`,\n        title:        subject.slice(0, 255),\n        price_cad:    price,\n        sale_date:    today,\n        category_raw: 'email-fallback',\n        url:          ''\n      }\n    });\n  }\n}\n\nreturn results;"
       },
       "id": "wf6-n2",
       "name": "Parse — Extract Listings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [260, 300]
+      "position": [500, 300]
     },
     {
       "parameters": {
@@ -65,7 +99,7 @@
       "name": "Filter — Valid Listings",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2,
-      "position": [500, 300]
+      "position": [740, 300]
     },
     {
       "parameters": {
@@ -95,7 +129,7 @@
       "name": "POST — BIH RBA API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [740, 300],
+      "position": [980, 300],
       "continueOnFail": true
     },
     {
@@ -116,7 +150,7 @@
       "name": "Filter — New Only",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2,
-      "position": [980, 300]
+      "position": [1220, 300]
     },
     {
       "parameters": {
@@ -128,17 +162,17 @@
       "name": "Aggregate",
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
-      "position": [1220, 300]
+      "position": [1460, 300]
     },
     {
       "parameters": {
-        "jsCode": "const listings = $input.item.json.listings || [];\nif (listings.length === 0) return [];\n\n// Sort cheapest first for quick scan\nlistings.sort((a, b) => (a.price_cad || 0) - (b.price_cad || 0));\n\nconst fmt = (n) => new Intl.NumberFormat('en-CA', {\n  style: 'currency', currency: 'CAD', maximumFractionDigits: 0\n}).format(n);\n\nconst lines = listings.map((l, i) => {\n  const cls = l.classification || {};\n  const clsStr = cls.category\n    ? `${cls.category}${cls.tonnage_class ? ' · ' + cls.tonnage_class : ''}${cls.brand ? ' · ' + cls.brand : ''}`\n    : '';\n  return [\n    `*${i + 1}. ${(l.title || '').slice(0, 90)}*`,\n    `💰 ${fmt(l.price_cad || 0)}` + (l.location ? `  📍 ${l.location}` : ''),\n    clsStr ? `🤖 ${clsStr}${cls.needs_review ? ' ⚠️' : ''}` : '',\n    l.url ? `🔗 [RBA Listing](${l.url})` : ''\n  ].filter(Boolean).join('\\n');\n}).join('\\n\\n───\\n\\n');\n\nconst msg = `🏷 *RBA 拍卖情报 — ${listings.length} 条新*\\n\\n${lines}\\n\\n📊 [Intel Dashboard](https://freightracing.ca/intel) · _WF6_`;\nreturn [{ json: { message: msg, count: listings.length } }];"
+        "jsCode": "const listings = $input.item.json.listings || [];\nif (listings.length === 0) return [];\n\nlistings.sort((a, b) => (a.price_cad || 0) - (b.price_cad || 0));\n\nconst fmt = (n) => new Intl.NumberFormat('en-CA', {\n  style: 'currency', currency: 'CAD', maximumFractionDigits: 0\n}).format(n);\n\nconst lines = listings.map((l, i) => {\n  const cls = l.classification || {};\n  const clsStr = cls.category\n    ? `${cls.category}${cls.tonnage_class ? ' · ' + cls.tonnage_class : ''}${cls.brand ? ' · ' + cls.brand : ''}`\n    : '';\n  return [\n    `*${i + 1}. ${(l.title || '').slice(0, 90)}*`,\n    `💰 ${fmt(l.price_cad || 0)}` + (l.location ? `  📍 ${l.location}` : ''),\n    clsStr ? `🤖 ${clsStr}${cls.needs_review ? ' ⚠️' : ''}` : '',\n    l.url ? `🔗 [Listing](${l.url})` : ''\n  ].filter(Boolean).join('\\n');\n}).join('\\n\\n───\\n\\n');\n\nconst msg = `🏷 *RBA/IronPlanet — ${listings.length} 条新拍卖情报*\\n\\n${lines}\\n\\n📊 [Intel Dashboard](https://freightracing.ca/intel) · _WF6_`;\nreturn [{ json: { message: msg, count: listings.length } }];"
       },
       "id": "wf6-n7",
       "name": "Build Alert",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1460, 300]
+      "position": [1700, 300]
     },
     {
       "parameters": {
@@ -150,7 +184,7 @@
       "name": "Telegram — Auction Alert",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1700, 300],
+      "position": [1940, 300],
       "credentials": {
         "telegramApi": {
           "name": "BIH Telegram Bot"
@@ -160,6 +194,12 @@
   ],
   "connections": {
     "Gmail — RBA Alerts": {
+      "main": [[{ "node": "Merge — All Alert Emails", "type": "main", "index": 0 }]]
+    },
+    "Gmail — IronPlanet Alerts": {
+      "main": [[{ "node": "Merge — All Alert Emails", "type": "main", "index": 1 }]]
+    },
+    "Merge — All Alert Emails": {
       "main": [[{ "node": "Parse — Extract Listings", "type": "main", "index": 0 }]]
     },
     "Parse — Extract Listings": {
