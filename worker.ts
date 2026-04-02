@@ -36,38 +36,53 @@ function toCtx(request: Request, env: WorkerEnv, execCtx: ExecutionContext): any
   };
 }
 
+// Bot probe paths that should never exist on this site — return 404 immediately
+const BOT_PROBE_RE = /\/(wp-|xmlrpc|wlwmanifest|phpmyadmin|\.env|\.git|cgi-bin|vendor|\.php)/i;
+
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
-    const { pathname } = new URL(request.url);
-    const method = request.method;
-    const c = toCtx(request, env, ctx);
+    try {
+      const url = new URL(request.url);
+      // Normalise multiple consecutive slashes (e.g. //wp2/... → /wp2/...)
+      const pathname = url.pathname.replace(/\/+/g, '/');
+      const method = request.method;
 
-    // ── API 路由 ──────────────────────────────────────────────────────────────
-    if (pathname === '/api/shipping-rates') {
-      if (method === 'OPTIONS') return shippingOpts(c);
-      if (method === 'POST')    return shippingPost(c);
-      return new Response(null, { status: 405 });
+      // ── Early-exit for bot probes — clean 404, no exception, no log noise ──
+      if (BOT_PROBE_RE.test(pathname)) {
+        return new Response('Not Found', { status: 404 });
+      }
+
+      const c = toCtx(request, env, ctx);
+
+      // ── API 路由 ────────────────────────────────────────────────────────────
+      if (pathname === '/api/shipping-rates') {
+        if (method === 'OPTIONS') return shippingOpts(c);
+        if (method === 'POST')    return shippingPost(c);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname === '/api/create-payment-intent') {
+        if (method === 'OPTIONS') return paymentOpts(c);
+        if (method === 'POST')    return paymentPost(c);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname === '/api/qbo-sync') {
+        if (method === 'OPTIONS') return qboOpts(c);
+        if (method === 'POST')    return qboPost(c);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname === '/api/stripe-webhook') {
+        if (method === 'OPTIONS') return webhookOpts(c);
+        if (method === 'POST')    return webhookPost(c);
+        return new Response(null, { status: 405 });
+      }
+
+      // ── 静态资源（SPA fallback 由 wrangler.jsonc assets 配置处理）───────────
+      return env.ASSETS.fetch(request);
+    } catch {
+      return new Response('Not Found', { status: 404 });
     }
-
-    if (pathname === '/api/create-payment-intent') {
-      if (method === 'OPTIONS') return paymentOpts(c);
-      if (method === 'POST')    return paymentPost(c);
-      return new Response(null, { status: 405 });
-    }
-
-    if (pathname === '/api/qbo-sync') {
-      if (method === 'OPTIONS') return qboOpts(c);
-      if (method === 'POST')    return qboPost(c);
-      return new Response(null, { status: 405 });
-    }
-
-    if (pathname === '/api/stripe-webhook') {
-      if (method === 'OPTIONS') return webhookOpts(c);
-      if (method === 'POST')    return webhookPost(c);
-      return new Response(null, { status: 405 });
-    }
-
-    // ── 静态资源（SPA fallback 由 wrangler.jsonc assets 配置处理）─────────────
-    return env.ASSETS.fetch(request);
   },
 };
