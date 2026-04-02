@@ -99,8 +99,10 @@ Toggle to **Active**. It will run automatically on the 1st of each month at 8AM.
 ## Workflow 3 — Compat Analytics + Weekly Report (`wf3-compat-analytics.json`)
 
 **What it does:**
-- **Event receiver**: Receives search events from the OEM Compatibility Finder (brand selected, model selected, no results, product clicked) and appends each row to a Google Sheet.
-- **Weekly cron**: Every Monday at 8 AM, reads the sheet, aggregates the past 7 days, and sends a formatted Telegram report with top brands, top models, no-match models, and most-clicked products.
+- **Event receiver**: Receives search events from the OEM Compatibility Finder (brand selected, model selected, no results, product clicked) and fans out to **two parallel destinations simultaneously**:
+  - Google Sheets (append row — analytics backup)
+  - D1 via `https://intel-api.freightracing.ca/ingest/compat` (Intel Dashboard data source)
+- **Weekly cron**: Every Monday at 8 AM, reads the sheet, aggregates the past 7 days, and sends a formatted Telegram report + OpenClaw AI insights.
 
 ### n8n vs Openclaw role
 
