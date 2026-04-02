@@ -15,47 +15,81 @@
     },
     {
       "parameters": {
-        "url": "https://canadabuys.canada.ca/en/rss"
+        "url": "https://canadabuys.canada.ca/en/tender-opportunities.rss"
       },
-      "id": "wf5-n2",
+      "id": "wf5-n2a",
       "name": "RSS — Canada Buys",
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.1,
-      "position": [240, 300]
+      "position": [240, 200],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const BIH_KEYWORDS = [\n  'excavator', 'attachment', 'bucket', 'thumb', 'ripper', 'auger',\n  'coupler', 'quick hitch', 'compactor', 'breaker', 'hydraulic hammer',\n  'heavy equipment', 'earthwork', 'grading', 'cat', 'komatsu',\n  'volvo', 'hitachi', 'liebherr', 'doosan', 'hyundai'\n];\n\nconst REGION_KEYWORDS = [\n  'ontario', 'toronto', 'gta', 'peel', 'york', 'durham', 'halton',\n  'brampton', 'mississauga', 'markham', 'oakville', 'hamilton',\n  'vaughan', 'barrie', 'kingston', 'ottawa'\n];\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const d = item.json;\n  const text = `${d.title || ''} ${d.content || d.contentSnippet || d.description || ''}`.toLowerCase();\n\n  const kw_hit = BIH_KEYWORDS.filter(k => text.includes(k));\n  if (kw_hit.length === 0) continue;\n\n  const region_found = REGION_KEYWORDS.find(r => text.includes(r));\n\n  const raw_id = d.guid || d.link || d.id || String(Date.now());\n  const listing_id = 'CB-' + raw_id.replace(/[^a-zA-Z0-9]/g, '').slice(-60);\n\n  const out = {\n    listing_id,\n    title: (d.title || 'Untitled').slice(0, 500),\n    region: region_found\n      ? region_found.charAt(0).toUpperCase() + region_found.slice(1)\n      : 'Canada',\n    source_url: (d.link || '').slice(0, 500),\n    keywords_hit: kw_hit.slice(0, 20)\n  };\n\n  results.push({ json: out });\n}\n\nreturn results;"
+        "url": "https://www.ontario.ca/api/drupal/opo/tenders.rss"
+      },
+      "id": "wf5-n2b",
+      "name": "RSS — Ontario Tenders",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [240, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "wf5-n2m",
+      "name": "Merge Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// BIH-relevant keywords — priority keywords (higher signal, more specific)\nconst PRIORITY_KW = [\n  'excavator attachment', 'bucket attachment', 'hydraulic thumb',\n  'ripper attachment', 'earth auger', 'quick coupler', 'quick hitch',\n  'hydraulic breaker', 'hydraulic hammer', 'skeleton bucket',\n  'compaction wheel', 'tilt coupler', 'demolition attachment'\n];\n\nconst GENERAL_KW = [\n  'excavator', 'attachment', 'bucket', 'thumb', 'ripper', 'auger',\n  'coupler', 'breaker', 'grapple', 'compactor', 'grading',\n  'earthwork', 'trenching', 'heavy equipment', 'construction equipment',\n  'dozer blade', 'plate compactor'\n];\n\nconst REGION_MAP = {\n  ontario:     'Ontario',\n  toronto:     'Toronto',\n  'greater toronto': 'GTA',\n  gta:         'GTA',\n  durham:      'Durham Region',\n  york:        'York Region',\n  peel:        'Peel Region',\n  halton:      'Halton',\n  brampton:    'Brampton',\n  mississauga: 'Mississauga',\n  markham:     'Markham',\n  oakville:    'Oakville',\n  hamilton:    'Hamilton',\n  vaughan:     'Vaughan',\n  barrie:      'Barrie',\n  kingston:    'Kingston',\n  ottawa:      'Ottawa',\n  kanata:      'Ottawa',\n  london:      'London ON'\n};\n\nconst results = [];\nconst seenIds = new Set();\n\nfor (const item of $input.all()) {\n  const d = item.json;\n  if (!d || typeof d !== 'object') continue;\n\n  const text = `${d.title || ''} ${d.content || d.contentSnippet || d.description || ''}`.toLowerCase();\n  if (text.trim().length === 0) continue;\n\n  // Keyword matching — priority keywords first, then general\n  const priorityHits = PRIORITY_KW.filter(k => text.includes(k));\n  const generalHits = GENERAL_KW.filter(k => text.includes(k));\n  const kw_hit = [...new Set([...priorityHits, ...generalHits])];\n  if (kw_hit.length === 0) continue;\n\n  // Region detection — first match wins (more specific first via REGION_MAP order)\n  let region = 'Canada';\n  for (const [key, label] of Object.entries(REGION_MAP)) {\n    if (text.includes(key)) { region = label; break; }\n  }\n\n  // Stable listing ID from GUID, falling back to URL hash\n  const rawId = String(d.guid || d.link || d.id || '');\n  if (!rawId) continue;\n  const listing_id = 'CB-' + rawId.replace(/[^a-zA-Z0-9]/g, '').slice(-60);\n  if (listing_id === 'CB-') continue;\n  if (seenIds.has(listing_id)) continue;\n  seenIds.add(listing_id);\n\n  // Try to extract closing/deadline date from content\n  const closingMatch = text.match(/clos(?:ing|es?)[^\\d]{0,20}(\\d{4}-\\d{2}-\\d{2})/) ||\n                       text.match(/deadline[^\\d]{0,20}(\\d{4}-\\d{2}-\\d{2})/);\n\n  results.push({\n    json: {\n      listing_id,\n      title: (d.title || 'Untitled').trim().slice(0, 500),\n      region,\n      source_url: (d.link || '').slice(0, 500),\n      keywords_hit: kw_hit.slice(0, 20),\n      ...(closingMatch ? { deadline: closingMatch[1] } : {})\n    }\n  });\n}\n\nreturn results;"
       },
       "id": "wf5-n3",
       "name": "Parse & Filter",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 300]
+      "position": [720, 300]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://bih-intel-api.yxj19980410.workers.dev/ingest/tender",
+        "url": "https://intel-api.freightracing.ca/ingest/tender",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
               "value": "=Bearer {{ $vars.BIH_API_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ $json }}",
-        "options": {}
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        }
       },
       "id": "wf5-n4",
       "name": "POST — BIH Tender",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [720, 300]
+      "position": [960, 300],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -75,7 +109,7 @@
       "name": "New Only",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2,
-      "position": [960, 300]
+      "position": [1200, 300]
     },
     {
       "parameters": {
@@ -87,17 +121,17 @@
       "name": "Aggregate",
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
-      "position": [1200, 300]
+      "position": [1440, 300]
     },
     {
       "parameters": {
-        "jsCode": "const tenders = $input.item.json.tenders || [];\nif (tenders.length === 0) return [];\n\nconst lines = tenders.map(t =>\n  `📋 *${(t.title || '').slice(0, 80)}*\\n` +\n  `📍 ${t.region || ''}` +\n  (t.deadline ? ` | ⏰ ${t.deadline}` : '') + '\\n' +\n  (t.source_url ? `🔗 ${t.source_url}` : '') +\n  (t.keywords_hit && t.keywords_hit.length ? `\\n🏷 ${t.keywords_hit.join(', ')}` : '')\n).join('\\n\\n');\n\nconst message = `🚨 *BIH — ${tenders.length} 条新标讯*\\n\\n${lines}\\n\\n_by n8n WF5_`;\nreturn [{ json: { message } }];"
+        "jsCode": "const tenders = $input.item.json.tenders || [];\nif (tenders.length === 0) return [];\n\nconst lines = tenders.map((t, i) => {\n  const kws = Array.isArray(t.keywords_hit) ? t.keywords_hit.slice(0, 5).join(', ') : '';\n  return [\n    `*${i + 1}. ${(t.title || '').slice(0, 100)}*`,\n    `📍 ${t.region || 'Canada'}` + (t.deadline ? `  ⏰ 截止 ${t.deadline}` : ''),\n    kws ? `🏷 ${kws}` : '',\n    t.source_url ? `🔗 [查看标书](${t.source_url})` : ''\n  ].filter(Boolean).join('\\n');\n}).join('\\n\\n───\\n\\n');\n\nconst msg = `🚨 *BIH GTA 标讯 — ${tenders.length} 条新*\\n\\n${lines}\\n\\n📊 [Intel Dashboard](https://freightracing.ca/intel) · _WF5_`;\nreturn [{ json: { message: msg } }];"
       },
       "id": "wf5-n7",
       "name": "Build Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1440, 300]
+      "position": [1680, 300]
     },
     {
       "parameters": {
@@ -109,15 +143,30 @@
       "name": "Telegram — Alert",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1680, 300],
-      "webhookId": "wf5-telegram-tender"
+      "position": [1920, 300],
+      "credentials": {
+        "telegramApi": {
+          "name": "BIH Telegram Bot"
+        }
+      }
     }
   ],
   "connections": {
     "Weekdays 8AM": {
-      "main": [[{ "node": "RSS — Canada Buys", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          { "node": "RSS — Canada Buys", "type": "main", "index": 0 },
+          { "node": "RSS — Ontario Tenders", "type": "main", "index": 0 }
+        ]
+      ]
     },
     "RSS — Canada Buys": {
+      "main": [[{ "node": "Merge Sources", "type": "main", "index": 0 }]]
+    },
+    "RSS — Ontario Tenders": {
+      "main": [[{ "node": "Merge Sources", "type": "main", "index": 1 }]]
+    },
+    "Merge Sources": {
       "main": [[{ "node": "Parse & Filter", "type": "main", "index": 0 }]]
     },
     "Parse & Filter": {

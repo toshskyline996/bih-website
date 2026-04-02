@@ -318,88 +318,100 @@ Click **Test workflow** (or **Execute Workflow**). The workflow will:
 
 **What it does:**
 - Runs weekdays at 8 AM
-- Fetches all tenders from Canada Buys (canadabuys.canada.ca) RSS feed
-- Filters by BIH-relevant keywords (excavator, bucket, attachment, ripper, auger, etc.)
-- POSTs each matched tender to the BIH Intel API (`/ingest/tender`) — duplicates are silently ignored
-- Aggregates newly inserted tenders and sends a Telegram alert
+- Fetches tenders from **two RSS sources in parallel**: Canada Buys (federal) + Ontario Tenders
+- Merges both feeds → filters by BIH-relevant keywords (14 priority + 16 general)
+- Tries to extract closing deadline from tender content
+- POSTs each matched tender to `https://intel-api.freightracing.ca/ingest/tender` — duplicates silently ignored
+- Aggregates newly inserted tenders → Telegram alert with dashboard link
+- Silent when 0 new results (no spam on quiet days)
 
-### Step 1 — Add n8n Variable
+> **RSS URL note:** Primary source is `canadabuys.canada.ca/en/tender-opportunities.rss`. If it fails try `https://canadabuys.canada.ca/en/rss` as alternate. Both RSS nodes have `continueOnFail: true` so one failing source won't abort the run.
 
-In n8n → **Settings** → **Variables**, confirm this variable exists (shared with WF3):
+### Step 1 — Confirm n8n Variables
+
+In n8n → **Settings** → **Variables**, confirm these exist:
 
 | Variable | Value |
 |---|---|
 | `BIH_API_SECRET` | `8bb3f1dc854dd8734045309f5d9485df79a1311ba7a139c8f0b6c34dd743e63a` |
 | `TELEGRAM_CHAT_ID` | `1924188362` |
 
-### Step 2 — Import workflow
+### Step 2 — Re-import updated workflow
 
-n8n → Workflows → **Import from file** → select `wf5-gta-tender.json`
+Delete the existing WF5 in n8n, then: Workflows → **Import from file** → select `wf5-gta-tender.json`
 
-After import, open the **Telegram — Alert** node and re-select the `BIH Telegram Bot` credential.
+After import, open **Telegram — Alert** → re-select `BIH Telegram Bot` credential.
 
 ### Step 3 — Test manually
 
-Before activating, click **Test workflow** to run it immediately. If the RSS feed returns relevant tenders, a Telegram message will arrive listing matched listings.
+Click **Test workflow**. Check the **Parse & Filter** node output for matched items. If 0 matched the workflow stops silently (expected on days with no relevant tenders).
 
-> **No results?** The Canada Buys RSS feed may not have GTA/excavator listings on a given day. Check the **Parse & Filter** node output to see what came back from the RSS.
+> **Tip:** To force a test Telegram message, temporarily disable the **New Only** filter node.
 
 ### Step 4 — Activate
 
-Toggle to **Active**. It will run Monday–Friday at 8 AM automatically.
+Toggle to **Active**. Runs Monday–Friday at 8 AM automatically.
 
 ---
 
 ## Workflow 6 — RBA Auction Intelligence (`wf6-rba-auction-intel.json`)
 
 **What it does:**
-- Watches your Gmail inbox for RBA / IronPlanet saved-search alert emails
-- Parses each email HTML to extract listing title, price, and URL
-- POSTs each listing to the BIH Intel API (`/ingest/rba`) — Workers AI auto-classifies brand + category
-- Aggregates newly inserted listings and sends a Telegram alert (sorted cheapest first)
+- Polls Gmail every **15 minutes** for unread RBA / IronPlanet saved-search alert emails
+- Two-strategy HTML parser:
+  - **Strategy 1:** Scans `<a>` tags pointing to `rbauction.com` / `ironplanet.com` listing URLs — extracts title from anchor text, price from surrounding context (8 patterns tried in specificity order), location from context
+  - **Strategy 2 fallback:** Whole-email single-listing for short price-drop alerts
+- Validates `price_cad > 0`, non-empty `listing_id` and `title` before posting
+- POSTs each valid listing to `https://intel-api.freightracing.ca/ingest/rba` — Workers AI auto-classifies brand + category
+- Aggregates new insertions → Telegram alert sorted cheapest first, includes AI classification
 
-> RBA and IronPlanet block all automated scraping. Email alerts are the official, reliable way to receive their data.
+> RBA and IronPlanet block all scraping. Gmail saved-search alerts are the only reliable data source.
 
-### Step 1 — Create a free RBA account + saved search
+### Step 1 — Create RBA / IronPlanet saved searches
 
 1. Go to **https://www.rbauction.com** → Sign Up (free)
-2. Search: **"excavator attachment"** → filter Location: **Canada**
-3. Click **Save Search** → enable **Email Alerts** (Daily digest)
-4. Repeat for **https://www.ironplanet.com** if desired
+2. Create saved searches for: `excavator bucket`, `hydraulic attachment`, `excavator thumb ripper` — each with Location: **Canada**, Alert: **Daily digest**
+3. Repeat at **https://www.ironplanet.com** with the same terms
 
-RBA alert emails come from `@rbauction.com`. Note the exact sender after your first alert arrives.
+First alert emails arrive within 24 hours. Note the exact sender address (e.g. `alerts@rbauction.com`).
 
-### Step 2 — Add Gmail OAuth2 credential in n8n
+### Step 2 — Enable Gmail API in Google Cloud
+
+In the existing Google Cloud project (same one used for WF3 Google Sheets):
+
+APIs & Services → Library → search **Gmail API** → Enable
+
+Confirm `https://n8n.freightracing.ca/rest/oauth2-credential/callback` is an authorized redirect URI.
+
+### Step 3 — Add Gmail OAuth2 credential in n8n
 
 n8n → Settings → Credentials → Add → **Gmail OAuth2 API**:
 
 | Field | Value |
 |---|---|
 | Name | `Gmail OAuth2 — BIH` |
-| Client ID | (from Google Cloud Console — same project as WF3 Google Sheets) |
+| Client ID | (same Google Cloud project as WF3) |
 | Client Secret | (same project) |
 
-Click **Sign in with Google** → authorize → Save.
+Click **Sign in with Google** → authorize with `antonequipmentca@gmail.com` → Save.
 
-> You already have a Google Cloud project from WF3. Reuse the same Client ID/Secret — just add `https://n8n.freightracing.ca/rest/oauth2-credential/callback` as an authorized redirect URI if not already present, and enable the **Gmail API** in that project.
+### Step 4 — Re-import updated workflow
 
-### Step 3 — Import workflow
-
-n8n → Workflows → **Import from file** → select `wf6-rba-auction-intel.json`
+Delete the existing WF6, then: Workflows → **Import from file** → select `wf6-rba-auction-intel.json`
 
 After import:
 - Open **Gmail — RBA Alerts** node → re-select `Gmail OAuth2 — BIH` credential
+- Update the **Sender** filter to the exact sender from your first RBA alert email
 - Open **Telegram — Auction Alert** node → re-select `BIH Telegram Bot` credential
-- In the Gmail node filters, update **Sender** to match the exact `@rbauction.com` sender address from your first alert email
 
-### Step 4 — Activate
+### Step 5 — Activate
 
-Toggle to **Active**. The workflow polls Gmail every minute for unread RBA alert emails.
+Toggle to **Active**. The workflow polls Gmail every 15 minutes.
 
-When a new alert email arrives:
-- Listings are parsed → posted to `/ingest/rba`
-- Workers AI classifies each listing (brand, category, confidence)
-- Telegram message arrives with new listings sorted cheapest first
+When alert emails arrive:
+- HTML parsed with anchor-scan + fallback strategies → listings extracted
+- Posted to `intel-api.freightracing.ca/ingest/rba` → Workers AI classifies each (brand, category, confidence)
+- Telegram shows new listings sorted cheapest first with AI classification result
 
 ---
 
