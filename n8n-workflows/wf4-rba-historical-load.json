@@ -1,0 +1,221 @@
+{
+  "name": "WF4 — RBA Historical Full-Load",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "wf4-n1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $vars.RBA_HISTORICAL_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "RBA Historical",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "wf4-n2",
+      "name": "Google Sheets — RBA Historical",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [240, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets — BIH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize Google Sheet rows into BIH Intel API format\n// Flexible column mapping — handles both snake_case and human-readable headers\nconst results = [];\nconst today = new Date().toISOString().slice(0, 10);\n\nfor (const item of $input.all()) {\n  const r = item.json;\n\n  const listing_id = String(\n    r.listing_id || r['Listing ID'] || r.id || r.ID || ''\n  ).trim();\n\n  const title = String(\n    r.title || r.Title || r.name || r.Name || r.description || ''\n  ).trim();\n\n  const priceRaw =\n    r.price_cad ??\n    r['Price (CAD)'] ??\n    r['Price CAD'] ??\n    r['price_cad'] ??\n    r.price ??\n    r.Price ??\n    0;\n  const price_cad = parseFloat(String(priceRaw).replace(/[^0-9.]/g, '')) || 0;\n\n  const sale_date_raw = String(\n    r.sale_date || r['Sale Date'] || r.date || r.Date || today\n  ).trim();\n  const dateValid = /^\\d{4}-\\d{2}-\\d{2}$/.test(sale_date_raw);\n\n  const category_raw =\n    String(r.category_raw || r.category || r.Category || '').trim() || null;\n  const location =\n    String(r.location || r.Location || r.region || r.Region || '').trim() || null;\n  const url =\n    String(r.url || r.URL || r.link || r.Link || r.href || '').trim() || null;\n\n  // Skip rows missing required fields\n  if (!listing_id || !title || price_cad <= 0) continue;\n\n  results.push({\n    json: {\n      listing_id: listing_id.slice(0, 100),\n      title: title.slice(0, 255),\n      price_cad,\n      sale_date: dateValid ? sale_date_raw : today,\n      category_raw: category_raw ? category_raw.slice(0, 100) : null,\n      location: location ? location.slice(0, 100) : null,\n      url: url ? url.slice(0, 500) : null\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "wf4-n3",
+      "name": "Normalize Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "combinator": "and" },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.listing_id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.price_cad }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            },
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.title }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ]
+        }
+      },
+      "id": "wf4-n4",
+      "name": "Filter — Valid Rows",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 100,
+        "options": {}
+      },
+      "id": "wf4-n5",
+      "name": "Batch 100",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect current batch items into a single JSON array for POST body\nconst rows = $input.all().map(i => i.json);\nreturn [{ json: rows }];"
+      },
+      "id": "wf4-n6",
+      "name": "Build Batch Array",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bih-intel-api.yxj19980410.workers.dev/ingest/rba/batch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.BIH_API_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "wf4-n7",
+      "name": "POST — Batch Ingest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 200ms back-pressure guard between batches\n// Gives Cloudflare D1 time to flush before next write\nawait new Promise(resolve => setTimeout(resolve, 200));\nreturn $input.all();"
+      },
+      "id": "wf4-n8",
+      "name": "Wait 200ms",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "// WF4 done — all batches submitted\n// Actual insertion stats available at Intel Dashboard\nconst message = [\n  '✅ *WF4 — RBA 历史数据全量导入完成*',\n  '',\n  '所有批次已提交至 BIH Intel API (`/ingest/rba/batch`)',\n  '• Workers AI 正在对每条记录进行品类+品牌分类',\n  '• 重复记录已通过 `INSERT OR IGNORE` 自动跳过',\n  '',\n  '📊 请前往 Intel Dashboard 核对实际插入条数：',\n  'https://freightracing.ca/intel',\n  '',\n  '_确认数据无误后，请禁用本工作流（避免重复触发）_'\n].join('\\n');\n\nreturn [{ json: { message } }];"
+      },
+      "id": "wf4-n9",
+      "name": "Build Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 440]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "wf4-n10",
+      "name": "Telegram — Load Complete",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1440, 440],
+      "webhookId": "wf4-telegram-done",
+      "credentials": {
+        "telegramApi": {
+          "name": "BIH Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [{ "node": "Google Sheets — RBA Historical", "type": "main", "index": 0 }]
+      ]
+    },
+    "Google Sheets — RBA Historical": {
+      "main": [
+        [{ "node": "Normalize Rows", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalize Rows": {
+      "main": [
+        [{ "node": "Filter — Valid Rows", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter — Valid Rows": {
+      "main": [
+        [{ "node": "Batch 100", "type": "main", "index": 0 }]
+      ]
+    },
+    "Batch 100": {
+      "main": [
+        [{ "node": "Build Batch Array", "type": "main", "index": 0 }],
+        [{ "node": "Build Summary", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Batch Array": {
+      "main": [
+        [{ "node": "POST — Batch Ingest", "type": "main", "index": 0 }]
+      ]
+    },
+    "POST — Batch Ingest": {
+      "main": [
+        [{ "node": "Wait 200ms", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 200ms": {
+      "main": [
+        [{ "node": "Batch 100", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Summary": {
+      "main": [
+        [{ "node": "Telegram — Load Complete", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

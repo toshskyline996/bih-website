@@ -245,6 +245,210 @@ After this update, re-import `wf3-compat-analytics.json` in n8n to get the new `
 
 ---
 
+## Workflow 4 — RBA Historical Full-Load (`wf4-rba-historical-load.json`)
+
+**What it does:**
+- One-time manual workflow — run once to bulk-import historical RBA / IronPlanet auction data into D1
+- Reads all rows from a Google Sheet (`RBA Historical` tab)
+- Normalizes and validates each row (skips rows missing `listing_id`, `title`, or `price_cad`)
+- Splits rows into batches of 100 → POSTs each batch to `/ingest/rba/batch`
+- Workers AI auto-classifies each listing (brand, category, tonnage_class)
+- Waits 200ms between batches to prevent D1 write backpressure
+- Sends a Telegram completion message with a link to the Intel Dashboard
+
+> **Run once, then disable.** Duplicate rows are silently skipped (`INSERT OR IGNORE`), so re-running is safe but unnecessary.
+
+### Step 1 — Prepare the Google Sheet
+
+Create a new tab named **`RBA Historical`** inside the existing **BIH Analytics** Google Sheet (same sheet used by WF3).
+
+Add these column headers in row 1:
+
+```
+listing_id | title | price_cad | sale_date | category_raw | location | url
+```
+
+| Column | Required | Notes |
+|---|---|---|
+| `listing_id` | ✅ | Unique ID, e.g. `RBA-12345` |
+| `title` | ✅ | Auction listing title, e.g. `2018 CAT 336F Bucket` |
+| `price_cad` | ✅ | Final sale price in CAD (number only) |
+| `sale_date` | ✅ | Format `YYYY-MM-DD` |
+| `category_raw` | ✗ | Optional raw category string from RBA |
+| `location` | ✗ | Optional province/city |
+| `url` | ✗ | Optional listing URL |
+
+> The workflow is flexible with column names — it also recognizes `Listing ID`, `Title`, `Price (CAD)`, `Sale Date`, `Category`, `Location`, `Link` as aliases.
+
+### Step 2 — Add n8n Variable
+
+In n8n → **Settings** → **Variables**, add:
+
+| Variable | Value |
+|---|---|
+| `RBA_HISTORICAL_SHEET_ID` | The Google Sheet ID (same sheet as `COMPAT_SHEET_ID`, just the ID string between `/d/` and `/edit`) |
+
+### Step 3 — Import workflow
+
+n8n → Workflows → **Import from file** → select `wf4-rba-historical-load.json`
+
+After import:
+- Open **Google Sheets — RBA Historical** node → re-select `Google Sheets — BIH` credential
+- Open **Telegram — Load Complete** node → re-select `BIH Telegram Bot` credential
+
+### Step 4 — Run manually
+
+Click **Test workflow** (or **Execute Workflow**). The workflow will:
+1. Read all rows from the sheet
+2. Log the count of valid rows in the **Filter — Valid Rows** node output
+3. Send batches of 100 to the API (Workers AI classifies each one)
+4. Send a Telegram message when complete
+
+> **Large datasets (>1000 rows):** Workers AI classification adds ~300ms per row. 1000 rows ≈ 5–10 minutes. Run during off-hours.
+
+### Step 5 — Verify & disable
+
+1. Open the **Intel Dashboard** at `https://freightracing.ca/intel`
+2. Check the RBA section for the imported listings
+3. **Disable the workflow** after confirming data looks correct
+
+---
+
+## Workflow 5 — GTA Tender Alert (`wf5-gta-tender.json`)
+
+**What it does:**
+- Runs weekdays at 8 AM
+- Fetches all tenders from Canada Buys (canadabuys.canada.ca) RSS feed
+- Filters by BIH-relevant keywords (excavator, bucket, attachment, ripper, auger, etc.)
+- POSTs each matched tender to the BIH Intel API (`/ingest/tender`) — duplicates are silently ignored
+- Aggregates newly inserted tenders and sends a Telegram alert
+
+### Step 1 — Add n8n Variable
+
+In n8n → **Settings** → **Variables**, confirm this variable exists (shared with WF3):
+
+| Variable | Value |
+|---|---|
+| `BIH_API_SECRET` | `8bb3f1dc854dd8734045309f5d9485df79a1311ba7a139c8f0b6c34dd743e63a` |
+| `TELEGRAM_CHAT_ID` | `1924188362` |
+
+### Step 2 — Import workflow
+
+n8n → Workflows → **Import from file** → select `wf5-gta-tender.json`
+
+After import, open the **Telegram — Alert** node and re-select the `BIH Telegram Bot` credential.
+
+### Step 3 — Test manually
+
+Before activating, click **Test workflow** to run it immediately. If the RSS feed returns relevant tenders, a Telegram message will arrive listing matched listings.
+
+> **No results?** The Canada Buys RSS feed may not have GTA/excavator listings on a given day. Check the **Parse & Filter** node output to see what came back from the RSS.
+
+### Step 4 — Activate
+
+Toggle to **Active**. It will run Monday–Friday at 8 AM automatically.
+
+---
+
+## Workflow 6 — RBA Auction Intelligence (`wf6-rba-auction-intel.json`)
+
+**What it does:**
+- Watches your Gmail inbox for RBA / IronPlanet saved-search alert emails
+- Parses each email HTML to extract listing title, price, and URL
+- POSTs each listing to the BIH Intel API (`/ingest/rba`) — Workers AI auto-classifies brand + category
+- Aggregates newly inserted listings and sends a Telegram alert (sorted cheapest first)
+
+> RBA and IronPlanet block all automated scraping. Email alerts are the official, reliable way to receive their data.
+
+### Step 1 — Create a free RBA account + saved search
+
+1. Go to **https://www.rbauction.com** → Sign Up (free)
+2. Search: **"excavator attachment"** → filter Location: **Canada**
+3. Click **Save Search** → enable **Email Alerts** (Daily digest)
+4. Repeat for **https://www.ironplanet.com** if desired
+
+RBA alert emails come from `@rbauction.com`. Note the exact sender after your first alert arrives.
+
+### Step 2 — Add Gmail OAuth2 credential in n8n
+
+n8n → Settings → Credentials → Add → **Gmail OAuth2 API**:
+
+| Field | Value |
+|---|---|
+| Name | `Gmail OAuth2 — BIH` |
+| Client ID | (from Google Cloud Console — same project as WF3 Google Sheets) |
+| Client Secret | (same project) |
+
+Click **Sign in with Google** → authorize → Save.
+
+> You already have a Google Cloud project from WF3. Reuse the same Client ID/Secret — just add `https://n8n.freightracing.ca/rest/oauth2-credential/callback` as an authorized redirect URI if not already present, and enable the **Gmail API** in that project.
+
+### Step 3 — Import workflow
+
+n8n → Workflows → **Import from file** → select `wf6-rba-auction-intel.json`
+
+After import:
+- Open **Gmail — RBA Alerts** node → re-select `Gmail OAuth2 — BIH` credential
+- Open **Telegram — Auction Alert** node → re-select `BIH Telegram Bot` credential
+- In the Gmail node filters, update **Sender** to match the exact `@rbauction.com` sender address from your first alert email
+
+### Step 4 — Activate
+
+Toggle to **Active**. The workflow polls Gmail every minute for unread RBA alert emails.
+
+When a new alert email arrives:
+- Listings are parsed → posted to `/ingest/rba`
+- Workers AI classifies each listing (brand, category, confidence)
+- Telegram message arrives with new listings sorted cheapest first
+
+---
+
+## Workflow 7 — Weekly Freight Rate Logger (`wf7-freight-rates.json`)
+
+**What it does:**
+- Every Friday at 2 PM — sends a Telegram reminder with a link to the rate entry form
+- You fill in that week's actual freight rates from your forwarder (takes ~1 min)
+- Rates are POSTed to the BIH Intel API (`/ingest/freight`) and stored in D1
+- Telegram confirmation sent immediately after submission (inserted / duplicate / error)
+
+> All public SCFI/FBX indices require paid subscriptions. Storing your **actual negotiated rates** from your freight forwarder is more accurate and more useful for cost analysis.
+
+### Step 1 — Import workflow
+
+n8n → Workflows → **Import from file** → select `wf7-freight-rates.json`
+
+After import, open both **Telegram** nodes and re-select the `BIH Telegram Bot` credential.
+
+### Step 2 — Activate
+
+Toggle to **Active**. Two things now work:
+
+| Trigger | What happens |
+|---|---|
+| Every Friday 2 PM | Telegram message sent to you with the form link |
+| Form submitted | Rates validated → posted to D1 → Telegram confirmation |
+
+### Step 3 — Bookmark the form URL
+
+The rate entry form is permanently available at:
+```
+https://n8n.freightracing.ca/form/bih-freight-rates
+```
+
+Bookmark it. Every Friday when your forwarder sends the weekly rate sheet, open the form, enter the numbers, done.
+
+### Form fields
+
+| Field | Required | Notes |
+|---|---|---|
+| Date (YYYY-MM-DD) | ✅ | The Friday date of that week |
+| NA West (China→Vancouver) | ✅ | USD per 40ft container |
+| NA East (China→Montreal) | ✗ | Optional |
+| Europe (China→Europe) | ✗ | Optional |
+| Notes | ✗ | Forwarder name, vessel, surcharges |
+
+---
+
 ## Troubleshooting
 
 **Webhook not triggering** — Verify `https://n8n.freightracing.ca` is publicly accessible and the workflow is Active.

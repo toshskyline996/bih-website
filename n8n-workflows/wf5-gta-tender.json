@@ -1,0 +1,146 @@
+{
+  "name": "WF5 — GTA Tender Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 8 * * 1-5" }]
+        }
+      },
+      "id": "wf5-n1",
+      "name": "Weekdays 8AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://canadabuys.canada.ca/en/rss"
+      },
+      "id": "wf5-n2",
+      "name": "RSS — Canada Buys",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const BIH_KEYWORDS = [\n  'excavator', 'attachment', 'bucket', 'thumb', 'ripper', 'auger',\n  'coupler', 'quick hitch', 'compactor', 'breaker', 'hydraulic hammer',\n  'heavy equipment', 'earthwork', 'grading', 'cat', 'komatsu',\n  'volvo', 'hitachi', 'liebherr', 'doosan', 'hyundai'\n];\n\nconst REGION_KEYWORDS = [\n  'ontario', 'toronto', 'gta', 'peel', 'york', 'durham', 'halton',\n  'brampton', 'mississauga', 'markham', 'oakville', 'hamilton',\n  'vaughan', 'barrie', 'kingston', 'ottawa'\n];\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const d = item.json;\n  const text = `${d.title || ''} ${d.content || d.contentSnippet || d.description || ''}`.toLowerCase();\n\n  const kw_hit = BIH_KEYWORDS.filter(k => text.includes(k));\n  if (kw_hit.length === 0) continue;\n\n  const region_found = REGION_KEYWORDS.find(r => text.includes(r));\n\n  const raw_id = d.guid || d.link || d.id || String(Date.now());\n  const listing_id = 'CB-' + raw_id.replace(/[^a-zA-Z0-9]/g, '').slice(-60);\n\n  const out = {\n    listing_id,\n    title: (d.title || 'Untitled').slice(0, 500),\n    region: region_found\n      ? region_found.charAt(0).toUpperCase() + region_found.slice(1)\n      : 'Canada',\n    source_url: (d.link || '').slice(0, 500),\n    keywords_hit: kw_hit.slice(0, 20)\n  };\n\n  results.push({ json: out });\n}\n\nreturn results;"
+      },
+      "id": "wf5-n3",
+      "name": "Parse & Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bih-intel-api.yxj19980410.workers.dev/ingest/tender",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.BIH_API_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "wf5-n4",
+      "name": "POST — BIH Tender",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "combinator": "and" },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.inserted }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ]
+        }
+      },
+      "id": "wf5-n5",
+      "name": "New Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "tenders",
+        "options": {}
+      },
+      "id": "wf5-n6",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const tenders = $input.item.json.tenders || [];\nif (tenders.length === 0) return [];\n\nconst lines = tenders.map(t =>\n  `📋 *${(t.title || '').slice(0, 80)}*\\n` +\n  `📍 ${t.region || ''}` +\n  (t.deadline ? ` | ⏰ ${t.deadline}` : '') + '\\n' +\n  (t.source_url ? `🔗 ${t.source_url}` : '') +\n  (t.keywords_hit && t.keywords_hit.length ? `\\n🏷 ${t.keywords_hit.join(', ')}` : '')\n).join('\\n\\n');\n\nconst message = `🚨 *BIH — ${tenders.length} 条新标讯*\\n\\n${lines}\\n\\n_by n8n WF5_`;\nreturn [{ json: { message } }];"
+      },
+      "id": "wf5-n7",
+      "name": "Build Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "wf5-n8",
+      "name": "Telegram — Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1680, 300],
+      "webhookId": "wf5-telegram-tender"
+    }
+  ],
+  "connections": {
+    "Weekdays 8AM": {
+      "main": [[{ "node": "RSS — Canada Buys", "type": "main", "index": 0 }]]
+    },
+    "RSS — Canada Buys": {
+      "main": [[{ "node": "Parse & Filter", "type": "main", "index": 0 }]]
+    },
+    "Parse & Filter": {
+      "main": [[{ "node": "POST — BIH Tender", "type": "main", "index": 0 }]]
+    },
+    "POST — BIH Tender": {
+      "main": [[{ "node": "New Only", "type": "main", "index": 0 }]]
+    },
+    "New Only": {
+      "main": [[{ "node": "Aggregate", "type": "main", "index": 0 }]]
+    },
+    "Aggregate": {
+      "main": [[{ "node": "Build Message", "type": "main", "index": 0 }]]
+    },
+    "Build Message": {
+      "main": [[{ "node": "Telegram — Alert", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

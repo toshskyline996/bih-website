@@ -1,0 +1,168 @@
+{
+  "name": "WF7 — Weekly Freight Rate Logger",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "BIH — 每周海运运价记录",
+        "formDescription": "每周五填写一次，记录当周实际报价（来自货代/船公司）",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "报价日期 (YYYY-MM-DD)",
+              "fieldType": "text",
+              "requiredField": true,
+              "fieldId": "date",
+              "placeholder": "2026-04-04"
+            },
+            {
+              "fieldLabel": "NA 西岸运价 China → Vancouver (USD/40ft)",
+              "fieldType": "number",
+              "requiredField": true,
+              "fieldId": "na_west",
+              "placeholder": "1800"
+            },
+            {
+              "fieldLabel": "NA 东岸运价 China → Montreal (USD/40ft)",
+              "fieldType": "number",
+              "requiredField": false,
+              "fieldId": "na_east",
+              "placeholder": "2400"
+            },
+            {
+              "fieldLabel": "欧洲运价 China → Europe (USD/40ft)",
+              "fieldType": "number",
+              "requiredField": false,
+              "fieldId": "europe",
+              "placeholder": "1500"
+            },
+            {
+              "fieldLabel": "备注 (货代 / 船公司 / 附加费说明)",
+              "fieldType": "textarea",
+              "requiredField": false,
+              "fieldId": "notes",
+              "placeholder": "e.g. COSCO via Vancouver, BAF included"
+            }
+          ]
+        },
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wf7-n1",
+      "name": "Form — Freight Rate Entry",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [0, 200],
+      "webhookId": "bih-freight-rates"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 14 * * 5" }]
+        }
+      },
+      "id": "wf7-n2",
+      "name": "Every Friday 2PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 420]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
+        "text": "📦 *BIH 海运运价提醒*\n\n请填写本周货代报价：\n👉 https://n8n.freightracing.ca/form/bih-freight-rates\n\n*字段说明：*\n- NA西岸 = China→Vancouver\n- NA东岸 = China→Montreal\n- 欧洲 = China→Europe\n\n_每周五记录一次，用于成本分析和 AI 洞察_",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "wf7-n3",
+      "name": "Telegram — Weekly Reminder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [240, 420],
+      "credentials": {
+        "telegramApi": { "name": "BIH Telegram Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const f = $input.item.json;\n\n// Validate date\nconst dateRe = /^\\d{4}-\\d{2}-\\d{2}$/;\nconst date = (f.date || '').trim();\nif (!dateRe.test(date)) {\n  throw new Error(`Invalid date: \"${date}\" — must be YYYY-MM-DD`);\n}\n\n// Parse numeric fields (form returns strings)\nconst toNum = (v) => {\n  const n = parseFloat(String(v || '').replace(/,/g, ''));\n  return isNaN(n) || n <= 0 ? undefined : n;\n};\n\nconst body = { date };\nconst na_west  = toNum(f.na_west);\nconst na_east  = toNum(f.na_east);\nconst europe   = toNum(f.europe);\n\nif (!na_west) throw new Error('na_west is required and must be a positive number');\n\nif (na_west)  body.scfi_na_west  = na_west;\nif (na_east)  body.scfi_na_east  = na_east;\nif (europe)   body.scfi_europe   = europe;\n\n// Build summary for Telegram confirmation\nconst parts = [\n  `NA西岸: $${na_west}/40ft`,\n  na_east  ? `NA东岸: $${na_east}/40ft`  : null,\n  europe   ? `欧洲: $${europe}/40ft`      : null,\n  f.notes  ? `备注: ${f.notes}`           : null,\n].filter(Boolean).join('\\n');\n\nreturn [{ json: { body, summary: parts, date } }];"
+      },
+      "id": "wf7-n4",
+      "name": "Validate & Map",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bih-intel-api.yxj19980410.workers.dev/ingest/freight",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.BIH_API_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "wf7-n5",
+      "name": "POST — BIH Freight API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.item.json;\nconst prev = $('Validate & Map').item.json;\n\nconst status = res.ok\n  ? (res.inserted ? '✅ 新记录已写入' : '⚠️ 该日期数据已存在（已跳过）')\n  : `❌ 写入失败: ${res.error || JSON.stringify(res)}`;\n\nconst message = `📊 *BIH 运价记录 — ${prev.date}*\\n\\n${prev.summary}\\n\\n${status}\\n\\n_by n8n WF7_`;\nreturn [{ json: { message } }];"
+      },
+      "id": "wf7-n6",
+      "name": "Build Confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "wf7-n7",
+      "name": "Telegram — Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 200],
+      "credentials": {
+        "telegramApi": { "name": "BIH Telegram Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "Form — Freight Rate Entry": {
+      "main": [[{ "node": "Validate & Map", "type": "main", "index": 0 }]]
+    },
+    "Every Friday 2PM": {
+      "main": [[{ "node": "Telegram — Weekly Reminder", "type": "main", "index": 0 }]]
+    },
+    "Validate & Map": {
+      "main": [[{ "node": "POST — BIH Freight API", "type": "main", "index": 0 }]]
+    },
+    "POST — BIH Freight API": {
+      "main": [[{ "node": "Build Confirmation", "type": "main", "index": 0 }]]
+    },
+    "Build Confirmation": {
+      "main": [[{ "node": "Telegram — Confirmation", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

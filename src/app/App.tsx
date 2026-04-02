@@ -32,7 +32,8 @@ const CheckoutPage      = lazyWithRetry(() => import('./pages/CheckoutPage').the
 const OrderSuccessPage  = lazyWithRetry(() => import('./pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
 const CompatibilityPage = lazyWithRetry(() => import('./pages/CompatibilityPage').then(m => ({ default: m.CompatibilityPage })));
 const FactoryPage       = lazyWithRetry(() => import('./pages/FactoryPage').then(m => ({ default: m.FactoryPage })));
-const BrandLandingPage  = lazyWithRetry(() => import('./pages/BrandLandingPage').then(m => ({ default: m.BrandLandingPage })));
+const BrandLandingPage      = lazyWithRetry(() => import('./pages/BrandLandingPage').then(m => ({ default: m.BrandLandingPage })));
+const IntelDashboardPage    = lazyWithRetry(() => import('./pages/IntelDashboardPage').then(m => ({ default: m.IntelDashboardPage })));
 
 const PageLoader = () => <div style={{ minHeight: '60vh', backgroundColor: '#111' }} />;
 
@@ -59,6 +60,7 @@ export default function App() {
             { path: 'order/success',  element: <Suspense fallback={<PageLoader />}><OrderSuccessPage /></Suspense> },
             { path: 'factory',       element: <Suspense fallback={<PageLoader />}><FactoryPage lang={lang} /></Suspense> },
             { path: 'excavator-attachments/:brandSlug', element: <Suspense fallback={<PageLoader />}><BrandLandingPage /></Suspense> },
+            { path: 'intel', element: <Suspense fallback={<PageLoader />}><IntelDashboardPage /></Suspense> },
             { path: '*', element: <Suspense fallback={<PageLoader />}><HomePage lang={lang} /></Suspense> },
           ],
         },

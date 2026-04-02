@@ -1,0 +1,179 @@
+{
+  "name": "WF6 — RBA Auction Intelligence (Email)",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [{ "mode": "everyMinute" }]
+        },
+        "filters": {
+          "sender": "rbauction.com",
+          "readStatus": "unread"
+        },
+        "simple": true,
+        "options": {}
+      },
+      "id": "wf6-n1",
+      "name": "Gmail — RBA Alerts",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "webhookId": "wf6-gmail-rba",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail OAuth2 — BIH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse RBA / IronPlanet alert email HTML into individual listing objects\nconst html = $input.item.json.html || $input.item.json.text || '';\nconst today = new Date().toISOString().slice(0, 10);\n\nif (!html || html.length < 100) return [];\n\n// ── Extract hrefs pointing to rbauction / ironplanet listings ──\nconst urlRe = /href=[\"'](https?:\\/\\/(?:www\\.)?(?:rbauction\\.com|ironplanet\\.com)\\/[^\"' ]{5,300})[\"']/gi;\nconst priceRe = /\\$\\s*([\\d,]+(?:\\.\\d{2})?)/g;\n\n// Titles: bold/heading tags that look like equipment names\nconst titleRe = /<(?:h[1-6]|strong|b|td|div|span)[^>]*>\\s*([^<]{15,200})\\s*<\\/(?:h[1-6]|strong|b|td|div|span)>/gi;\n\nconst urls = [], prices = [], titles = [];\nlet m;\n\nwhile ((m = urlRe.exec(html)) !== null) {\n  const u = m[1];\n  // Only listing detail pages, skip nav/footer links\n  if (/\\/(lot|item|listing|equipment)\\//.test(u) || /\\/[A-Za-z0-9]{6,}$/.test(u)) {\n    if (!urls.includes(u)) urls.push(u);\n  }\n}\n\nwhile ((m = priceRe.exec(html)) !== null) {\n  const p = parseFloat(m[1].replace(/,/g, ''));\n  if (p >= 200 && p <= 250000) prices.push(p);\n}\n\nwhile ((m = titleRe.exec(html)) !== null) {\n  const t = m[1].trim().replace(/\\s+/g, ' ');\n  // Filter: must look like equipment (contains typical keywords)\n  if (t.length >= 10 && /bucket|thumb|ripper|auger|coupler|attachment|excavator|breaker|compactor|blade|rake|grapple/i.test(t)) {\n    titles.push(t);\n  }\n}\n\n// If no URLs found fall back: treat whole email as one unknown listing\nif (urls.length === 0 && prices.length > 0) {\n  const subject = $input.item.json.subject || 'RBA Alert';\n  return [{\n    json: {\n      listing_id: 'RBA-EMAIL-' + $input.item.json.id,\n      title: subject.slice(0, 255),\n      price_cad: prices[0],\n      sale_date: today,\n      category_raw: 'email-alert',\n      url: ''\n    }\n  }];\n}\n\nconst results = [];\nconst count = urls.length;\n\nfor (let i = 0; i < count; i++) {\n  const url = urls[i];\n  const rawId = url.split('/').filter(Boolean).pop().replace(/[^a-zA-Z0-9-]/g, '').slice(-50);\n  const listing_id = 'RBA-' + rawId;\n\n  // Match price: use index-matched price, or nearest\n  const price_cad = prices[i] ?? prices[0] ?? 0;\n  if (price_cad <= 0) continue;\n\n  const title = (\n    titles[i] ??\n    titles[0] ??\n    ($input.item.json.subject || 'RBA Listing').replace(/alert|save search|results/gi, '').trim()\n  ).slice(0, 255);\n\n  results.push({\n    json: {\n      listing_id,\n      title,\n      price_cad,\n      sale_date: today,\n      category_raw: 'rba-email-alert',\n      location: 'Canada',\n      url: url.slice(0, 500)\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "wf6-n2",
+      "name": "Parse — Extract Listings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "combinator": "and" },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.price_cad }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.listing_id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ]
+        }
+      },
+      "id": "wf6-n3",
+      "name": "Filter — Valid Listings",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bih-intel-api.yxj19980410.workers.dev/ingest/rba",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.BIH_API_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "wf6-n4",
+      "name": "POST — BIH RBA API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "combinator": "and" },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.inserted }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ]
+        }
+      },
+      "id": "wf6-n5",
+      "name": "Filter — New Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "listings",
+        "options": {}
+      },
+      "id": "wf6-n6",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const listings = $input.item.json.listings || [];\nif (listings.length === 0) return [];\n\n// Sort by price ascending (cheapest first)\nlistings.sort((a, b) => (a.price_cad || 0) - (b.price_cad || 0));\n\nconst fmt = (n) => new Intl.NumberFormat('en-CA', {\n  style: 'currency', currency: 'CAD', maximumFractionDigits: 0\n}).format(n);\n\nconst lines = listings.map(l =>\n  `📦 *${(l.title || '').slice(0, 80)}*\\n` +\n  `💰 ${fmt(l.price_cad || 0)}` +\n  (l.location ? ` | 📍 ${l.location}` : '') + '\\n' +\n  (l.url ? `🔗 ${l.url}` : '')\n).join('\\n\\n');\n\nconst message = `🏷 *RBA — ${listings.length} 条新拍卖情报*\\n\\n${lines}\\n\\n_by n8n WF6_`;\nreturn [{ json: { message, count: listings.length } }];"
+      },
+      "id": "wf6-n7",
+      "name": "Build Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "wf6-n8",
+      "name": "Telegram — Auction Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1680, 300],
+      "webhookId": "wf6-telegram-rba",
+      "credentials": {
+        "telegramApi": {
+          "name": "BIH Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Gmail — RBA Alerts": {
+      "main": [[{ "node": "Parse — Extract Listings", "type": "main", "index": 0 }]]
+    },
+    "Parse — Extract Listings": {
+      "main": [[{ "node": "Filter — Valid Listings", "type": "main", "index": 0 }]]
+    },
+    "Filter — Valid Listings": {
+      "main": [[{ "node": "POST — BIH RBA API", "type": "main", "index": 0 }]]
+    },
+    "POST — BIH RBA API": {
+      "main": [[{ "node": "Filter — New Only", "type": "main", "index": 0 }]]
+    },
+    "Filter — New Only": {
+      "main": [[{ "node": "Aggregate", "type": "main", "index": 0 }]]
+    },
+    "Aggregate": {
+      "main": [[{ "node": "Build Alert", "type": "main", "index": 0 }]]
+    },
+    "Build Alert": {
+      "main": [[{ "node": "Telegram — Auction Alert", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
