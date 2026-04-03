@@ -22,5 +22,15 @@
 			"id": "04f6f645da47470d92a381bc952ee2e3",
 			"remote": true
 		}
+	],
+	"routes": [
+		{
+			"pattern": "freightracing.ca/*",
+			"zone_name": "freightracing.ca"
+		},
+		{
+			"pattern": "www.freightracing.ca/*",
+			"zone_name": "freightracing.ca"
+		}
 	]
 }
