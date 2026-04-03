@@ -84,6 +84,7 @@ export function VesselMap({ apiKey }: { apiKey: string }) {
 
   const [vesselCount, setVesselCount] = useState(0);
   const [flightCount, setFlightCount] = useState(0);
+  const [flightsAvailable, setFlightsAvailable] = useState<boolean | null>(null); // null=loading, false=unavailable
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [selected, setSelected] = useState<SelectedItem | null>(null);
   const [showFlights, setShowFlights] = useState(true);
@@ -130,7 +131,9 @@ export function VesselMap({ apiKey }: { apiKey: string }) {
     try {
       const res = await fetch('/api/flights');
       if (!res.ok) return;
-      const { states } = await res.json() as { states: FlightState[] };
+      const json = await res.json() as { ok: boolean; states: FlightState[] };
+      if (!json.ok) { setFlightsAvailable(false); return; }
+      const { states } = json;
       if (!flightLayerRef.current) return;
       flightLayerRef.current.clearLayers();
       (states ?? []).forEach(f => {
@@ -149,8 +152,9 @@ export function VesselMap({ apiKey }: { apiKey: string }) {
         flightLayerRef.current!.addLayer(marker);
       });
       setFlightCount((states ?? []).filter(f => !f.on_ground).length);
+      setFlightsAvailable(true);
     } catch {
-      // Flights are optional — fail silently
+      setFlightsAvailable(false); // Flights are optional — fail silently
     }
   }, [showFlights]);
 
@@ -212,7 +216,11 @@ export function VesselMap({ apiKey }: { apiKey: string }) {
       <div className="absolute top-3 left-3 z-[1000] flex flex-col gap-1.5 pointer-events-none">
         <div className="bg-zinc-900/90 backdrop-blur-sm text-xs text-zinc-300 px-3 py-1.5 rounded-lg border border-zinc-700 flex gap-3">
           <span><span className="text-teal-400 font-bold">{vesselCount}</span> vessels</span>
-          {showFlights && <span><span className="text-zinc-400 font-bold">{flightCount}</span> flights</span>}
+          {showFlights && (
+            flightsAvailable === false
+              ? <span className="text-zinc-600">flights N/A</span>
+              : <span><span className="text-zinc-400 font-bold">{flightCount}</span> flights</span>
+          )}
           {lastUpdate && <span className="text-zinc-600">↺ {lastUpdate}</span>}
         </div>
         {error && (
