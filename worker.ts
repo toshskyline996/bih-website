@@ -19,6 +19,67 @@ export interface WorkerEnv {
   STRIPE_WEBHOOK_SECRET: string;
   QUICKBOOKS_SANDBOX?: string;
   MANITOULIN_API_TOKEN?: string;
+  // OpenSky flight proxy
+  OPENSKY_CLIENT_ID: string;
+  OPENSKY_CLIENT_SECRET: string;
+  KV_CACHE: KVNamespace;
+}
+
+const OPENSKY_TOKEN_URL =
+  'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token';
+
+// Pacific bounding box: China North coast → Canadian West Coast (crosses dateline)
+// Two boxes — Cloudflare Workers fetch can't split at the dateline so we use Pacific range
+const OPENSKY_BBOX = 'lamin=30&lomin=118&lamax=62&lomax=-120';
+
+async function fetchOpenSkyToken(env: WorkerEnv): Promise<string> {
+  const cached = await env.KV_CACHE.get('opensky_token');
+  if (cached) return cached;
+
+  const res = await fetch(OPENSKY_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: env.OPENSKY_CLIENT_ID,
+      client_secret: env.OPENSKY_CLIENT_SECRET,
+    }),
+  });
+  if (!res.ok) throw new Error(`OpenSky token error: ${res.status}`);
+  const data = await res.json() as { access_token: string; expires_in: number };
+  // Cache for 25 min (token lives 30 min; 5 min margin)
+  await env.KV_CACHE.put('opensky_token', data.access_token, { expirationTtl: 1500 });
+  return data.access_token;
+}
+
+async function handleFlightsProxy(env: WorkerEnv): Promise<Response> {
+  try {
+    const token = await fetchOpenSkyToken(env);
+    const res = await fetch(
+      `https://opensky-network.org/api/states/all?${OPENSKY_BBOX}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) {
+      if (res.status === 429) return new Response(JSON.stringify({ ok: false, error: 'rate_limited' }), { status: 429, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, error: `opensky_${res.status}` }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
+    const raw = await res.json() as { time: number; states: unknown[][] | null };
+    // Return only the fields the map needs: [icao24, callsign, lon, lat, velocity, true_track, on_ground]
+    const states = (raw.states ?? []).map((s: unknown[]) => ({
+      icao24:    s[0],
+      callsign:  (s[1] as string)?.trim(),
+      lon:       s[5],
+      lat:       s[6],
+      velocity:  s[9],
+      heading:   s[10],
+      on_ground: s[8],
+    })).filter(s => s.lat != null && s.lon != null);
+    return new Response(JSON.stringify({ ok: true, time: raw.time, states }), {
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+  }
 }
 
 // 将 Worker 参数包装成 Pages Function 兼容的 EventContext 对象
@@ -76,6 +137,12 @@ export default {
       if (pathname === '/api/stripe-webhook') {
         if (method === 'OPTIONS') return webhookOpts(c);
         if (method === 'POST')    return webhookPost(c);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname === '/api/flights') {
+        if (method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Allow-Headers': 'Content-Type' } });
+        if (method === 'GET')     return handleFlightsProxy(env);
         return new Response(null, { status: 405 });
       }
 

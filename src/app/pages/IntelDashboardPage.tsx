@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { VesselMap } from '../components/VesselMap';
 
 const API = 'https://bih-intel-api.yxj19980410.workers.dev';
 const STORAGE_KEY = 'bih_intel_key';
@@ -94,7 +95,7 @@ function Dashboard({ apiKey }: { apiKey: string }) {
   const [freight,  setFreight]  = useState<FreightRow[]>([]);
   const [compat,   setCompat]   = useState<CompatRow[]>([]);
   const [loading,  setLoading]  = useState(true);
-  const [tab,      setTab]      = useState<'tender' | 'rba' | 'freight' | 'compat'>('tender');
+  const [tab,      setTab]      = useState<'tender' | 'rba' | 'freight' | 'compat' | 'map'>('tender');
 
   const headers = { Authorization: `Bearer ${apiKey}` };
 
@@ -138,6 +139,7 @@ function Dashboard({ apiKey }: { apiKey: string }) {
     { key: 'rba',     label: '🏷 RBA Listings' },
     { key: 'freight', label: '🚢 Freight Rates' },
     { key: 'compat',  label: '🔍 Compat Analytics' },
+    { key: 'map',     label: '🗺 Live Map' },
   ];
 
   return (
@@ -306,6 +308,15 @@ function Dashboard({ apiKey }: { apiKey: string }) {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* ── Map tab ── */}
+        {tab === 'map' && (
+          <div>
+            <SectionHead title="China North → Canada — Live Vessel & Flight Tracker" />
+            <p className="text-zinc-500 text-xs mb-4">Vessels updated every 5 min via AISStream · Flights updated every 90s via OpenSky · Click any marker for details</p>
+            <VesselMap apiKey={apiKey} />
           </div>
         )}
 
