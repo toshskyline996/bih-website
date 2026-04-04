@@ -24,6 +24,9 @@ dist-ssr
 *.sw?
 deploy-*.zip
 
+# Local reference materials (not for version control)
+Anton Equipment/
+
 # wrangler files
 .wrangler
 .dev.vars*
