@@ -3,8 +3,6 @@ name: Deploy bih-website to Cloudflare Workers
 on:
   push:
     branches: [main]
-  schedule:
-    - cron: '0 * * * *'   # every hour at :00
   workflow_dispatch:        # manual trigger from GitHub Actions tab
 
 jobs:
