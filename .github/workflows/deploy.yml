@@ -1,9 +1,7 @@
 name: Deploy bih-website to Cloudflare Workers
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:        # manual trigger from GitHub Actions tab
+  workflow_dispatch:        # manual trigger only — Cloudflare Workers CI handles auto-deploy on push
 
 jobs:
   deploy:
