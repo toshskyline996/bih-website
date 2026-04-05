@@ -8,15 +8,15 @@ const timeline = [
   { year: '2003', en: 'Manufacturing facility established in Shandong Province, China. Initial focus on standard excavator buckets.', fr: 'Création de l\'installation de fabrication dans la province du Shandong. Focus initial sur les godets standard.' },
   { year: '2008', en: 'ISO 9001 certification achieved. CNC plasma cutting lines introduced for precision fabrication.', fr: 'Certification ISO 9001 obtenue. Lignes de découpe plasma CNC introduites pour une fabrication de précision.' },
   { year: '2012', en: 'Robotic welding cell deployment. Export volume exceeds 1,000 units annually. Entry into Australian and Canadian markets.', fr: 'Déploiement de cellules de soudage robotisé. Volume d\'exportation dépasse 1 000 unités annuelles.' },
-  { year: '2016', en: 'Hardox 450 wear plate integration across all product lines. CE certification for all attachments.', fr: 'Intégration des plaques d\'usure Hardox 450 dans toutes les gammes. Certification CE pour toutes les pièces jointes.' },
+  { year: '2016', en: '450 HBW wear plate integration across all product lines. CE certification for all attachments.', fr: 'Intégration des plaques d\'usure 450 HBW dans toutes les gammes. Certification CE pour toutes les pièces jointes.' },
   { year: '2020', en: 'Production floor expanded to 60,000 m². Full ultrasonic weld inspection system operational.', fr: 'Atelier de production agrandi à 60 000 m². Système complet d\'inspection ultrasonique des soudures opérationnel.' },
   { year: '2024', en: 'Boreal Iron Heavy Inc. incorporated in Canada. Direct-to-Canada channel launched — borealironheavy.ca', fr: 'Boreal Iron Heavy Inc. incorporée au Canada. Canal direct vers le Canada lancé — borealironheavy.ca' },
 ];
 
 const qualitySteps = [
-  { icon: Shield, step: '01', title: 'Material Traceability', titleFr: 'Traçabilité des Matériaux', desc: 'Every plate, bar, and pin carries a mill certificate (EN 10204-3.1). Steel chemistry and mechanical properties verified before production.', descFr: 'Chaque plaque, barre et axe est accompagné d\'un certificat d\'usine (EN 10204-3.1).' },
+  { icon: Shield, step: '01', title: 'Verified Steel Grade', titleFr: 'Grade Acier Vérifié', desc: 'Q355 HSLA structural steel per GB/T 1591 — equivalent to European S355/EN 10025. All incoming steel verified through our ISO 9001-governed material inspection process.', descFr: 'Acier structural Q355 HSLA selon GB/T 1591 — équivalent à l\'européen S355/EN 10025. Tout l\'acier entrant est vérifié selon notre processus d\'inspection ISO 9001.' },
   { icon: Wrench, step: '02', title: 'Robotic Welding', titleFr: 'Soudage Robotisé', desc: 'All structural welds performed by 6-axis robots following AWS D1.1 procedures. Zero-defect welding on critical load-bearing joints.', descFr: 'Toutes les soudures structurelles effectuées par des robots 6 axes selon les procédures AWS D1.1.' },
-  { icon: CheckCircle, step: '03', title: 'Ultrasonic Inspection', titleFr: 'Inspection Ultrasonique', desc: 'Post-weld ultrasonic testing (UT) on all primary structural welds. Weld inspection records issued with each unit.', descFr: 'Tests ultrasoniques post-soudage sur toutes les soudures structurelles primaires.' },
+  { icon: CheckCircle, step: '03', title: 'Ultrasonic Inspection', titleFr: 'Inspection Ultrasonique', desc: 'Post-weld ultrasonic testing (UT) on all primary structural welds. Weld inspection conducted per ISO 9001 documented quality procedures.', descFr: 'Tests ultrasoniques post-soudage sur toutes les soudures structurelles primaires. Inspection selon les procédures qualité ISO 9001.' },
   { icon: Award, step: '04', title: 'Load & Impact Test', titleFr: 'Test de Charge et d\'Impact', desc: 'Destructive and non-destructive testing per ISO 7438. Cold impact tests at −40°C for Canadian climate certification.', descFr: 'Tests destructifs et non destructifs selon ISO 7438. Tests d\'impact à froid à −40°C.' },
 ];
 
@@ -103,8 +103,8 @@ export function AboutPage({ lang = 'en' }: { lang?: string }) {
               </p>
               <p style={{ fontSize: '14px', color: '#666', lineHeight: 1.9, fontWeight: 300, marginBottom: '28px' }}>
                 {isFr
-                  ? "Nous utilisons exclusivement de l'acier Q355 HSLA pour les corps structuraux et des plaques Hardox 450 pour les zones d'usure, garantissant une durée de vie supérieure dans les conditions canadiennes difficiles."
-                  : "We exclusively use Q355 HSLA structural steel for bodies and Hardox 450 wear plates for high-abrasion zones, ensuring superior service life in demanding Canadian conditions."}
+                  ? "Nous utilisons de l'acier Q355 HSLA pour les corps structuraux et des plaques d'usure 450 HBW pour les zones à forte abrasion, garantissant une durée de vie supérieure dans les conditions canadiennes difficiles."
+                  : "Q355 HSLA structural steel for bodies, 450 HBW wear plate for high-abrasion zones — engineered for superior service life in demanding Canadian conditions."}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {[

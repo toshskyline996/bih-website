@@ -27,7 +27,7 @@ const BRAND_SEO: Record<string, { h1: string; intro: string }> = {
   },
   Volvo: {
     h1: 'Volvo CE Excavator\nAttachments\nCanada',
-    intro: 'Heavy-duty buckets, breakers, and quick couplers for Volvo ECR and EC excavators. Q355 structural steel, Hardox 450 wear zones, CE certified — ECR18E to EC380E.',
+    intro: 'Heavy-duty buckets, breakers, and quick couplers for Volvo ECR and EC excavators. Q355 structural steel, 450 HBW wear zones, CE certified — ECR18E to EC380E.',
   },
   Hitachi: {
     h1: 'Hitachi Excavator\nAttachments\nCanada',
@@ -43,7 +43,7 @@ const BRAND_SEO: Record<string, { h1: string; intro: string }> = {
   },
   Bobcat: {
     h1: 'Bobcat Excavator\nAttachments\nCanada',
-    intro: 'Heavy-duty attachments for Bobcat compact excavators (E17 to E145). Q355 structural steel, Hardox 450 cutting edges, compatible with Bobcat S-lock couplers.',
+    intro: 'Heavy-duty attachments for Bobcat compact excavators (E17 to E145). Q355 structural steel, 450 HBW cutting edges, compatible with Bobcat S-lock couplers.',
   },
 };
 

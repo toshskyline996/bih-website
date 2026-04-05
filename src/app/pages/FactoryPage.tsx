@@ -22,8 +22,8 @@ const milestones = [
   },
   {
     year: '2016',
-    en: 'Hardox 450 wear plate integration across all product lines. CE certification achieved for full attachment range.',
-    fr: 'Intégration Hardox 450 sur toutes les gammes. Certification CE obtenue pour la gamme complète.',
+    en: '450 HBW wear plate integration across all product lines. CE certification achieved for full attachment range.',
+    fr: 'Intégration plaques d\'usure 450 HBW sur toutes les gammes. Certification CE obtenue pour la gamme complète.',
   },
   {
     year: '2020',
@@ -49,8 +49,8 @@ const capabilities = [
     icon: Award,
     en: 'ISO 9001 · CE · EN 474',
     fr: 'ISO 9001 · CE · EN 474',
-    descEn: 'Full quality system certification with mill traceability. Every unit ships with EN 10204-3.1 material cert, weld inspection record, and CE declaration.',
-    descFr: 'Certification complète avec traçabilité matière. Chaque unité est livrée avec certificat EN 10204-3.1, rapport d\'inspection soudure et déclaration CE.',
+    descEn: 'ISO 9001 certified quality system with documented incoming material inspection. CE Declaration of Conformity available upon request for all attachment product lines.',
+    descFr: 'Système qualité ISO 9001 avec inspection des matières entrantes documentée. Déclaration de conformité CE disponible sur demande pour toutes les gammes de produits.',
   },
   {
     icon: Ship,
@@ -69,7 +69,7 @@ const capabilities = [
 ];
 
 const exportRoute = [
-  { step: '01', en: 'Shandong Factory', fr: 'Usine Shandong', sub: 'Q355 + Hardox 450 fabrication' },
+  { step: '01', en: 'Shandong Factory', fr: 'Usine Shandong', sub: 'Q355 + 450 HBW fabrication' },
   { step: '02', en: 'Yantai / Qingdao Port', fr: 'Port Yantai / Qingdao', sub: 'FOB loading · Belt & Road hub' },
   { step: '03', en: 'Trans-Pacific Shipping', fr: 'Transport Transpacifique', sub: '~18–22 days · breakbulk or FCL' },
   { step: '04', en: 'Vancouver / Prince Rupert', fr: 'Vancouver / Prince Rupert', sub: 'Canadian port clearance' },

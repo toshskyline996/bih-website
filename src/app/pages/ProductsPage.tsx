@@ -51,8 +51,8 @@ export function ProductsPage({ lang = 'en' }: { lang?: string }) {
           </h1>
           <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', fontWeight: 300, marginTop: '16px', maxWidth: '480px', lineHeight: 1.7 }}>
             {isFr
-              ? `${products.length} modèles disponibles · Q355 + Hardox 450 · Livraison directe au Canada`
-              : `${products.length} models available · Q355 + Hardox 450 · Direct to Canada`}
+              ? `${products.length} modèles disponibles · Q355 + 450 HBW · Livraison directe au Canada`
+              : `${products.length} models available · Q355 + 450 HBW · Direct to Canada`}
           </p>
         </div>
       </section>

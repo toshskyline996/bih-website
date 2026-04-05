@@ -9,7 +9,7 @@ const IL = { fontFamily: "'Inter', sans-serif" };
 
 // ─── Analytics helper ────────────────────────────────────────────────────────
 function fireCompatEvent(payload: Record<string, unknown>) {
-  fetch('https://n8n.freightracing.ca/webhook/bih-compat-event', {
+  fetch('/api/track-compat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...payload, ts: new Date().toISOString() }),

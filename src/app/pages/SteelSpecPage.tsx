@@ -9,7 +9,7 @@ const mainSpecs = [
   { property: 'Elongation', propertyFr: 'Allongement', bih: '≥ 20%', astm: '≥ 18%', edge: 'BIH' },
   { property: 'Impact Toughness', propertyFr: 'Résistance aux chocs', bih: '34J @ −20°C', astm: '27J @ −18°C', edge: 'BIH' },
   { property: 'Plate Thickness', propertyFr: 'Épaisseur de plaque', bih: 'Up to 150mm', astm: 'Up to 100mm', edge: 'BIH' },
-  { property: 'Mill Certification', propertyFr: 'Certification d\'usine', bih: 'EN 10204-3.1', astm: 'ASTM A6', edge: 'Equal' },
+  { property: 'Quality System', propertyFr: 'Système Qualité', bih: 'ISO 9001 Certified Facility', astm: 'Varies by supplier', edge: 'BIH' },
   { property: 'Carbon Equivalent', propertyFr: 'Équivalent carbone', bih: '≤ 0.43', astm: '≤ 0.45', edge: 'BIH' },
   { property: 'Weldability', propertyFr: 'Soudabilité', bih: 'Excellent (PWHT not required)', astm: 'Good', edge: 'BIH' },
 ];
@@ -26,7 +26,7 @@ const hardoxSpecs = [
 
 export function SteelSpecPage({ lang = 'en' }: { lang?: string }) {
   const isFr = lang === 'fr';
-  usePageTitle('Steel Specifications — Q355 HSLA + Hardox 450', 'Spécifications Acier — Q355 HSLA + Hardox 450', lang);
+  usePageTitle('Steel Specifications — Q355 HSLA + 450 HBW Wear Plate', 'Spécifications Acier — Q355 HSLA + 450 HBW', lang);
 
   return (
     <div style={IL}>
@@ -139,22 +139,22 @@ export function SteelSpecPage({ lang = 'en' }: { lang?: string }) {
       <section style={{ backgroundColor: '#f5f5f5', padding: '80px 0' }}>
         <div className="max-w-[1400px] mx-auto px-8 md:px-16">
           <p style={{ fontSize: '11px', letterSpacing: '0.3em', color: '#999', textTransform: 'uppercase', fontWeight: 300, marginBottom: '32px' }}>
-            {isFr ? '02 — Pièces d\'Usure: Hardox 450' : '02 — Wear Parts: Hardox 450'}
+            {isFr ? '02 — Pièces d\'Usure: 450 HBW' : '02 — Wear Parts: 450 HBW'}
           </p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             <div>
               <h2 style={{ fontSize: 'clamp(22px, 3vw, 38px)', fontWeight: 900, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: '20px' }}>
-                Hardox 450<br />{isFr ? 'Plaques d\'Usure' : 'Wear Plates'}
+                450 HBW<br />{isFr ? 'Plaques d\'Usure' : 'Wear Plate'}
               </h2>
               <p style={{ fontSize: '14px', color: '#666', fontWeight: 300, lineHeight: 1.9, marginBottom: '16px' }}>
                 {isFr
-                  ? "Hardox 450 est l'acier résistant à l'usure de référence de SSAB. Toutes les arêtes de coupe, plaques de fond, couteaux latéraux et dents BIH sont fabriqués en Hardox 450."
-                  : "Hardox 450 is SSAB's benchmark wear-resistant steel. All BIH cutting edges, floor plates, side cutters, tines, and wear bars are manufactured from Hardox 450."}
+                  ? "Acier anti-usure de classe 450 HBW pour toutes les arêtes de coupe, plaques de fond, couteaux latéraux, dents et barres d'usure BIH. Performance équivalente à la classe Hardox 450."
+                  : "450 HBW class wear-resistant steel for all BIH cutting edges, floor plates, side cutters, tines, and wear bars. Equivalent performance class to Hardox 450."}
               </p>
               <p style={{ fontSize: '14px', color: '#666', fontWeight: 300, lineHeight: 1.9 }}>
                 {isFr
-                  ? "À 425–475 HBW, Hardox 450 offre 2 à 3 fois la résistance à l'usure de l'acier structural ordinaire, avec une ténacité suffisante pour résister aux chocs à −40°C."
-                  : "At 425–475 HBW, Hardox 450 delivers 2–3× the abrasion resistance of ordinary structural steel, with sufficient toughness to withstand impacts at −40°C."}
+                  ? "À 425–475 HBW, notre plaque d'usure de classe 450 offre 2 à 3 fois la résistance à l'abrasion de l'acier structural ordinaire, avec une ténacité suffisante pour résister aux chocs à −40°C."
+                  : "At 425–475 HBW, our 450-class wear plate delivers 2–3× the abrasion resistance of ordinary structural steel, with sufficient toughness to withstand impacts at −40°C."}
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -298,14 +298,14 @@ export function SteelSpecPage({ lang = 'en' }: { lang?: string }) {
               </h2>
               <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', fontWeight: 300, lineHeight: 1.9, maxWidth: '500px' }}>
                 {isFr
-                  ? "Le corps Q355 et les pièces d'usure Hardox 450 sont tous deux testés à l'impact à froid à −40°C. Cela garantit que nos accessoires restent ductiles et résistants aux fissures même lors de conditions hivernales extrêmes en Alberta, en Saskatchewan et dans le nord de l'Ontario."
-                  : "Both Q355 body and Hardox 450 wear parts are cold impact tested at −40°C. This ensures our attachments remain ductile and crack-resistant even during extreme winter conditions across Alberta, Saskatchewan, and Northern Ontario."}
+                  ? "Le corps Q355 et les pièces d'usure 450 HBW sont tous deux testés à l'impact à froid à −40°C. Cela garantit que nos accessoires restent ductiles et résistants aux fissures même lors de conditions hivernales extrêmes en Alberta, en Saskatchewan et dans le nord de l'Ontario."
+                  : "Both Q355 body and 450 HBW wear parts are cold impact tested at −40°C. This ensures our attachments remain ductile and crack-resistant even during extreme winter conditions across Alberta, Saskatchewan, and Northern Ontario."}
               </p>
             </div>
             <div className="flex flex-col gap-5 justify-center">
               {[
                 { temp: '−20°C', label: isFr ? 'Test Impact Q355' : 'Q355 Impact Test', val: '34J' },
-                { temp: '−40°C', label: isFr ? 'Test Impact Hardox' : 'Hardox Impact Test', val: '30J' },
+                { temp: '−40°C', label: isFr ? 'Test Impact 450 HBW' : '450 HBW Impact Test', val: '30J' },
                 { temp: '−40°C', label: isFr ? 'Température Min d\'Utilisation' : 'Min Operating Temp', val: 'Rated' },
               ].map((item, i) => (
                 <div key={`${item.temp}-${i}`} style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px' }}>

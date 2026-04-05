@@ -54,7 +54,7 @@ export function Footer({ lang }: FooterProps) {
             </a>
           </div>
           <p style={{ fontWeight: 300, fontSize: '11px', color: 'rgba(255,255,255,0.18)', letterSpacing: '0.08em' }}>
-            Shandong Manufacturing · ISO 9001 · CE · EN 474 · EN 10204-3.1
+            Shandong Manufacturing · ISO 9001 · CE · EN 474
           </p>
         </div>
       </div>

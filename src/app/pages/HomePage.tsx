@@ -31,7 +31,7 @@ const valueProps = [
   {
     icon: Snowflake,
     title: 'Sub-Zero Rated',
-    desc: 'Q355 HSLA steel body with Hardox 450 wear parts — engineered for Canadian winter ground conditions down to −40°C.',
+    desc: 'Q355 HSLA steel body with 450 HBW wear parts — engineered for Canadian winter ground conditions down to −40°C.',
     link: '/steel-spec',
     linkText: 'View Steel Specs',
   },

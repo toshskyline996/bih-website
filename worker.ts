@@ -32,7 +32,23 @@ const OPENSKY_BBOXES = [
   'lamin=28&lomin=-180&lamax=62&lomax=-120', // dateline → BC coast
 ];
 
+const FLIGHTS_CACHE_KEY = 'flights:pacific';
+const FLIGHTS_CACHE_TTL = 300; // 5 minutes
+
+const JSON_CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+
 async function handleFlightsProxy(env: WorkerEnv): Promise<Response> {
+  const parseStates = (raw: { time: number; states: unknown[][] | null }) =>
+    (raw.states ?? []).map((s: unknown[]) => ({
+      icao24:    s[0],
+      callsign:  (s[1] as string)?.trim() || null,
+      lon:       s[5],
+      lat:       s[6],
+      velocity:  s[9],
+      heading:   s[10],
+      on_ground: s[8],
+    })).filter((s: { lat: unknown; lon: unknown }) => s.lat != null && s.lon != null);
+
   try {
     // Basic auth with client_id:client_secret — bypasses OAuth2 token endpoint
     const basicAuth = 'Basic ' + btoa(`${env.OPENSKY_CLIENT_ID}:${env.OPENSKY_CLIENT_SECRET}`);
@@ -46,20 +62,16 @@ async function handleFlightsProxy(env: WorkerEnv): Promise<Response> {
     );
 
     if (!r1.ok && !r2.ok) {
-      if (r1.status === 429) return new Response(JSON.stringify({ ok: false, error: 'rate_limited' }), { status: 429, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
-      return new Response(JSON.stringify({ ok: false, error: `opensky_${r1.status}` }), { status: 502, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+      // Rate limited — serve cached data if available, else empty
+      if (r1.status === 429 || r2.status === 429) {
+        const cached = await env.KV_CACHE.get(FLIGHTS_CACHE_KEY);
+        if (cached) return new Response(cached, { headers: { ...JSON_CORS, 'X-Cache': 'stale-ratelimit' } });
+      }
+      // OpenSky unavailable — serve cached data if available, else empty states (no 502)
+      const cached = await env.KV_CACHE.get(FLIGHTS_CACHE_KEY);
+      if (cached) return new Response(cached, { headers: { ...JSON_CORS, 'X-Cache': 'stale-error' } });
+      return new Response(JSON.stringify({ ok: true, time: 0, states: [] }), { headers: JSON_CORS });
     }
-
-    const parseStates = (raw: { time: number; states: unknown[][] | null }) =>
-      (raw.states ?? []).map((s: unknown[]) => ({
-        icao24:    s[0],
-        callsign:  (s[1] as string)?.trim() || null,
-        lon:       s[5],
-        lat:       s[6],
-        velocity:  s[9],
-        heading:   s[10],
-        on_ground: s[8],
-      })).filter(s => s.lat != null && s.lon != null);
 
     const [d1, d2] = await Promise.all([
       r1.ok ? r1.json() as Promise<{ time: number; states: unknown[][] | null }> : Promise.resolve({ time: 0, states: null }),
@@ -67,11 +79,19 @@ async function handleFlightsProxy(env: WorkerEnv): Promise<Response> {
     ]);
 
     const states = [...parseStates(d1), ...parseStates(d2)];
-    return new Response(JSON.stringify({ ok: true, time: d1.time || d2.time, states }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    const body = JSON.stringify({ ok: true, time: d1.time || d2.time, states });
+
+    // Cache the successful response
+    await env.KV_CACHE.put(FLIGHTS_CACHE_KEY, body, { expirationTtl: FLIGHTS_CACHE_TTL });
+
+    return new Response(body, { headers: JSON_CORS });
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+    // Network / parse error — try cache before giving up
+    try {
+      const cached = await env.KV_CACHE.get(FLIGHTS_CACHE_KEY);
+      if (cached) return new Response(cached, { headers: { ...JSON_CORS, 'X-Cache': 'stale-exception' } });
+    } catch { /* KV unavailable */ }
+    return new Response(JSON.stringify({ ok: true, time: 0, states: [] }), { headers: JSON_CORS });
   }
 }
 
@@ -136,6 +156,26 @@ export default {
       if (pathname === '/api/flights') {
         if (method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Allow-Headers': 'Content-Type' } });
         if (method === 'GET')     return handleFlightsProxy(env);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname === '/api/track-compat') {
+        const corsHeaders = {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        };
+        if (method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
+        if (method === 'POST') {
+          const body = await request.json() as Record<string, unknown>;
+          const cf = (request as Request & { cf?: { city?: string; region?: string } }).cf;
+          const enriched = { ...body, city: cf?.city ?? null, region_cf: cf?.region ?? null };
+          return fetch('https://intel-api.freightracing.ca/ingest/compat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(enriched),
+          });
+        }
         return new Response(null, { status: 405 });
       }
 

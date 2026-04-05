@@ -136,7 +136,7 @@ export function ContactPage({ lang = 'en' }: { lang?: string }) {
                   {
                     label: isFr ? 'Certifications' : 'Certifications',
                     value: 'CE · ISO 9001 · EN 474',
-                    sub: 'EN 10204-3.1 mill certs',
+                    sub: 'CE DoC available on request',
                   },
                 ].map((item) => (
                   <div key={item.label} style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '20px' }}>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router';
 import { ArrowLeft, CheckCircle, ChevronRight, ShoppingCart, Check } from 'lucide-react';
 import { getProductBySlug } from '../data/products';
@@ -25,6 +25,27 @@ export function ProductDetailPage({ lang = 'en' }: { lang?: string }) {
   const [inquiry, setInquiry] = useState({ name: '', company: '', email: '', message: '' });
   const [addedToCart, setAddedToCart] = useState(false);
   const isFr = lang === 'fr';
+  const [rbaListings, setRbaListings] = useState<{ title: string; price_cad: number; sale_date: string }[]>([]);
+
+  useEffect(() => {
+    const cacheKey = 'rba-public-cache';
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { ts, data } = JSON.parse(cached);
+        if (Date.now() - ts < 24 * 60 * 60 * 1000) { setRbaListings(data); return; }
+      } catch { /* ignore */ }
+    }
+    fetch('https://intel-api.freightracing.ca/query/rba-public')
+      .then(r => r.json())
+      .then((res: { ok: boolean; data: { title: string; price_cad: number; sale_date: string }[] }) => {
+        if (res.ok && res.data?.length) {
+          setRbaListings(res.data);
+          localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: res.data }));
+        }
+      })
+      .catch(() => {});
+  }, []);
   const addItem = useCartStore((s) => s.addItem);
 
   const handleAddToCart = () => {
@@ -258,8 +279,8 @@ export function ProductDetailPage({ lang = 'en' }: { lang?: string }) {
               <div className="flex flex-wrap gap-3 mb-4">
                 {[
                   { badge: 'Q355D HSLA', sub: isFr ? 'Corps Structural' : 'Structural Body' },
-                  { badge: 'Hardox 450', sub: isFr ? 'Pièces d\'Usure' : 'Wear Parts' },
-                  { badge: 'EN 10204-3.1', sub: isFr ? 'Certification Usine' : 'Mill Certified' },
+                  { badge: '450 HBW', sub: isFr ? 'Pièces d\'Usure' : 'Wear Plate' },
+                  { badge: 'ISO 9001', sub: isFr ? 'Atelier Certifié' : 'Certified Facility' },
                   { badge: 'AWS D1.1', sub: isFr ? 'Soudage Robot.' : 'Robotic Weld' },
                   { badge: '−40°C', sub: isFr ? 'Cert. Impact Froid' : 'Cold Impact Rated' },
                 ].map((b) => (
@@ -289,6 +310,33 @@ export function ProductDetailPage({ lang = 'en' }: { lang?: string }) {
           </div>
         </div>
       </section>
+
+      {/* RBA Market Intelligence Widget */}
+      {rbaListings.length > 0 && (
+        <section style={{ backgroundColor: '#111', padding: '32px 0', borderBottom: '1px solid #1e1e1e' }}>
+          <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+            <p style={{ fontSize: '10px', letterSpacing: '0.3em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', fontWeight: 300, marginBottom: '16px' }}>
+              {isFr ? 'Marché — Ventes Récentes' : 'Market Intelligence — Recent Auction Sales'}
+            </p>
+            <div className="flex flex-wrap gap-4 items-end">
+              {rbaListings.map((item, i) => (
+                <div key={i} style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', padding: '12px 18px', minWidth: '200px' }}>
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', fontWeight: 300, lineHeight: 1.4, marginBottom: '6px' }}>{item.title}</p>
+                  <p style={{ fontSize: '18px', fontWeight: 700, color: '#ffc500', letterSpacing: '-0.02em' }}>
+                    CAD ${item.price_cad.toLocaleString()}
+                  </p>
+                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', fontWeight: 300, marginTop: '2px' }}>{item.sale_date}</p>
+                </div>
+              ))}
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontWeight: 300, maxWidth: '240px', lineHeight: 1.7 }}>
+                {isFr
+                  ? 'Protégez cet investissement avec des accessoires BIH Q355.'
+                  : 'Protect this investment with BIH Q355 attachments.'}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Factory Nameplate */}
       <section style={{ backgroundColor: '#0E0E0E', padding: '48px 0' }}>
