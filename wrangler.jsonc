@@ -23,6 +23,13 @@
 			"remote": true
 		}
 	],
+	"d1_databases": [
+		{
+			"binding": "INVENTORY_DB",
+			"database_name": "bih-inventory",
+			"database_id": "0f962fcd-9d52-434b-b3ab-c015980f569a"
+		}
+	],
 	"routes": [
 		{
 			"pattern": "freightracing.ca/*",

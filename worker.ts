@@ -8,6 +8,12 @@ import { onRequestPost as shippingPost, onRequestOptions as shippingOpts } from 
 import { onRequestPost as paymentPost, onRequestOptions as paymentOpts } from './functions/api/create-payment-intent';
 import { onRequestPost as qboPost, onRequestOptions as qboOpts } from './functions/api/qbo-sync';
 import { onRequestPost as webhookPost, onRequestOptions as webhookOpts } from './functions/api/stripe-webhook';
+import { onRequestGet as invPingGet, onRequestOptions as invPingOpts } from './functions/api/inventory-ping';
+import { onRequestGet as invSkuGet, onRequestPost as invSkuPost, onRequestOptions as invSkuOpts } from './functions/api/inventory-sku';
+import { onRequestGet as invUnitsGet, onRequestOptions as invUnitsOpts } from './functions/api/inventory-units';
+import { onRequestPost as invInboundPost, onRequestOptions as invInboundOpts } from './functions/api/inventory-inbound';
+import { onRequestPost as invScanPost, onRequestOptions as invScanOpts } from './functions/api/inventory-scan-out';
+import { onRequestGet as invUnitGet, onRequestPatch as invUnitPatch, onRequestOptions as invUnitOpts } from './functions/api/inventory-unit';
 
 export interface WorkerEnv {
   ASSETS: Fetcher;
@@ -23,6 +29,9 @@ export interface WorkerEnv {
   OPENSKY_CLIENT_ID: string;
   OPENSKY_CLIENT_SECRET: string;
   KV_CACHE: KVNamespace;
+  // Inventory system
+  INVENTORY_DB: D1Database;
+  INVENTORY_ADMIN_SECRET: string;
 }
 
 // Pacific bounding box split into two halves to avoid dateline crossing
@@ -156,6 +165,45 @@ export default {
       if (pathname === '/api/flights') {
         if (method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Allow-Headers': 'Content-Type' } });
         if (method === 'GET')     return handleFlightsProxy(env);
+        return new Response(null, { status: 405 });
+      }
+
+      // ── Inventory API ──────────────────────────────────────────────────────
+      if (pathname === '/api/inventory/ping') {
+        if (method === 'OPTIONS') return invPingOpts(c);
+        if (method === 'GET')     return invPingGet(c);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname === '/api/inventory/sku') {
+        if (method === 'OPTIONS') return invSkuOpts(c);
+        if (method === 'GET')     return invSkuGet(c);
+        if (method === 'POST')    return invSkuPost(c);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname === '/api/inventory/units') {
+        if (method === 'OPTIONS') return invUnitsOpts(c);
+        if (method === 'GET')     return invUnitsGet(c);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname === '/api/inventory/inbound') {
+        if (method === 'OPTIONS') return invInboundOpts(c);
+        if (method === 'POST')    return invInboundPost(c);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname === '/api/inventory/scan-out') {
+        if (method === 'OPTIONS') return invScanOpts(c);
+        if (method === 'POST')    return invScanPost(c);
+        return new Response(null, { status: 405 });
+      }
+
+      if (pathname.startsWith('/api/inventory/unit/')) {
+        if (method === 'OPTIONS') return invUnitOpts(c);
+        if (method === 'GET')     return invUnitGet(c);
+        if (method === 'PATCH')   return invUnitPatch(c);
         return new Response(null, { status: 405 });
       }
 

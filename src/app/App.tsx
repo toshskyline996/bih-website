@@ -34,6 +34,7 @@ const CompatibilityPage = lazyWithRetry(() => import('./pages/CompatibilityPage'
 const FactoryPage       = lazyWithRetry(() => import('./pages/FactoryPage').then(m => ({ default: m.FactoryPage })));
 const BrandLandingPage      = lazyWithRetry(() => import('./pages/BrandLandingPage').then(m => ({ default: m.BrandLandingPage })));
 const IntelDashboardPage    = lazyWithRetry(() => import('./pages/IntelDashboardPage').then(m => ({ default: m.IntelDashboardPage })));
+const InventoryPage         = lazyWithRetry(() => import('./pages/InventoryPage').then(m => ({ default: m.InventoryPage })));
 
 const PageLoader = () => <div style={{ minHeight: '60vh', backgroundColor: '#111' }} />;
 
@@ -61,6 +62,7 @@ export default function App() {
             { path: 'factory',       element: <Suspense fallback={<PageLoader />}><FactoryPage lang={lang} /></Suspense> },
             { path: 'excavator-attachments/:brandSlug', element: <Suspense fallback={<PageLoader />}><BrandLandingPage /></Suspense> },
             { path: 'intel', element: <Suspense fallback={<PageLoader />}><IntelDashboardPage /></Suspense> },
+            { path: 'inventory', element: <Suspense fallback={<PageLoader />}><InventoryPage /></Suspense> },
             { path: '*', element: <Suspense fallback={<PageLoader />}><HomePage lang={lang} /></Suspense> },
           ],
         },
