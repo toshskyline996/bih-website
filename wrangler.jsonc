@@ -30,6 +30,12 @@
 			"database_id": "0f962fcd-9d52-434b-b3ab-c015980f569a"
 		}
 	],
+	"services": [
+		{
+			"binding": "INTEL_API",
+			"service": "bih-intel-api"
+		}
+	],
 	"routes": [
 		{
 			"pattern": "freightracing.ca/*",

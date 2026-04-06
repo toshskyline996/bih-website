@@ -35,6 +35,10 @@ export interface WorkerEnv {
   // Intel API proxy — same value as API_SECRET in bih-intel-api Worker.
   // Set via: wrangler secret put INTEL_API_SECRET  (in bih-website project)
   INTEL_API_SECRET: string;
+  // Service binding — routes Worker-to-Worker calls internally, bypassing the
+  // public CDN.  This avoids Cloudflare 522 errors that occur when a Worker on
+  // the same zone makes a subrequest to another Worker via its custom domain.
+  INTEL_API: Fetcher;
 }
 
 // Pacific bounding box split into two halves to avoid dateline crossing
@@ -231,17 +235,21 @@ export default {
           const body = await request.json() as Record<string, unknown>;
           const cf = (request as Request & { cf?: { city?: string; region?: string } }).cf;
           const enriched = { ...body, city: cf?.city ?? null, region_cf: cf?.region ?? null };
-          // /ingest/compat is a protected route in bih-intel-api (requires Bearer
-          // token).  Without this Authorization header every compat event silently
-          // returns 401 and the dashboard compat tab stays permanently empty.
-          const upstream = await fetch('https://intel-api.freightracing.ca/ingest/compat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${env.INTEL_API_SECRET}`,
-            },
-            body: JSON.stringify(enriched),
-          });
+          // Use the Service Binding (env.INTEL_API) instead of a bare fetch().
+          // Both workers are on the same Cloudflare zone (freightracing.ca) so a
+          // plain fetch() to intel-api.freightracing.ca triggers same-zone CDN
+          // routing which times out with 522.  The binding routes the call
+          // internally within Cloudflare's network, bypassing the CDN entirely.
+          const upstream = await env.INTEL_API.fetch(
+            new Request('https://intel-api.freightracing.ca/ingest/compat', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${env.INTEL_API_SECRET}`,
+              },
+              body: JSON.stringify(enriched),
+            })
+          );
           // Re-wrap response so our CORS headers (not upstream's) reach the browser.
           return new Response(upstream.body, {
             status: upstream.status,
