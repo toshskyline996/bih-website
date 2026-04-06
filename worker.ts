@@ -32,6 +32,9 @@ export interface WorkerEnv {
   // Inventory system
   INVENTORY_DB: D1Database;
   INVENTORY_ADMIN_SECRET: string;
+  // Intel API proxy — same value as API_SECRET in bih-intel-api Worker.
+  // Set via: wrangler secret put INTEL_API_SECRET  (in bih-website project)
+  INTEL_API_SECRET: string;
 }
 
 // Pacific bounding box split into two halves to avoid dateline crossing
@@ -208,20 +211,41 @@ export default {
       }
 
       if (pathname === '/api/track-compat') {
-        const corsHeaders = {
-          'Access-Control-Allow-Origin': '*',
+        // Lock CORS to our own domain: /api/track-compat is only called by our
+        // own frontend JS.  Wildcard '*' would let any third-party site POST
+        // fake compat events to flood the analytics table.
+        const origin = request.headers.get('Origin') ?? '';
+        const COMPAT_ALLOWED = new Set([
+          'https://freightracing.ca',
+          'https://www.freightracing.ca',
+          'http://localhost:5173',
+        ]);
+        const compatOrigin = COMPAT_ALLOWED.has(origin) ? origin : 'https://freightracing.ca';
+        const trackCorsHeaders = {
+          'Access-Control-Allow-Origin': compatOrigin,
           'Access-Control-Allow-Methods': 'POST',
           'Access-Control-Allow-Headers': 'Content-Type',
         };
-        if (method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
+        if (method === 'OPTIONS') return new Response(null, { status: 204, headers: trackCorsHeaders });
         if (method === 'POST') {
           const body = await request.json() as Record<string, unknown>;
           const cf = (request as Request & { cf?: { city?: string; region?: string } }).cf;
           const enriched = { ...body, city: cf?.city ?? null, region_cf: cf?.region ?? null };
-          return fetch('https://intel-api.freightracing.ca/ingest/compat', {
+          // /ingest/compat is a protected route in bih-intel-api (requires Bearer
+          // token).  Without this Authorization header every compat event silently
+          // returns 401 and the dashboard compat tab stays permanently empty.
+          const upstream = await fetch('https://intel-api.freightracing.ca/ingest/compat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${env.INTEL_API_SECRET}`,
+            },
             body: JSON.stringify(enriched),
+          });
+          // Re-wrap response so our CORS headers (not upstream's) reach the browser.
+          return new Response(upstream.body, {
+            status: upstream.status,
+            headers: { 'Content-Type': 'application/json', ...trackCorsHeaders },
           });
         }
         return new Response(null, { status: 405 });

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { VesselMap } from '../components/VesselMap';
 
-const API = 'https://bih-intel-api.yxj19980410.workers.dev';
+// Use the custom domain — workers.dev subdomain can be disabled or change
+// if the worker is ever renamed or the account subdomain rotates.
+const API = 'https://intel-api.freightracing.ca';
 const STORAGE_KEY = 'bih_intel_key';
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -10,6 +12,7 @@ interface Summary {
   rba:     { total: number; needs_review: number; avg_price_cad: number | null };
   freight: { latest: FreightRow | null };
   compat:  { searches_7d: number };
+  vessels: { active: number; last_update: string | null };
 }
 interface TenderRow  { id: number; listing_id: string; title: string; region: string; est_value_cad: number | null; deadline: string | null; status: string; source_url: string | null; created_at: string }
 interface RbaRow     { id: number; listing_id: string; title: string; category: string | null; brand: string | null; price_cad: number; sale_date: string; url: string | null; needs_review: number }
@@ -39,9 +42,13 @@ function LoginScreen({ onAuth }: { onAuth: (key: string) => void }) {
 
   const attempt = async () => {
     setErr('');
-    const res = await fetch(`${API}/query/summary`, { headers: { Authorization: `Bearer ${val}` } });
-    if (res.ok) { sessionStorage.setItem(STORAGE_KEY, val); onAuth(val); }
-    else setErr('Invalid key — try again');
+    try {
+      const res = await fetch(`${API}/query/summary`, { headers: { Authorization: `Bearer ${val}` } });
+      if (res.ok) { sessionStorage.setItem(STORAGE_KEY, val); onAuth(val); }
+      else setErr('Invalid key — try again');
+    } catch {
+      setErr('Network error — check your connection');
+    }
   };
 
   return (
@@ -88,32 +95,39 @@ function SectionHead({ title, count }: { title: string; count?: number }) {
 }
 
 // ── Main dashboard ────────────────────────────────────────────────
-function Dashboard({ apiKey }: { apiKey: string }) {
+function Dashboard({ apiKey, onSignOut }: { apiKey: string; onSignOut: () => void }) {
   const [summary,  setSummary]  = useState<Summary | null>(null);
   const [tenders,  setTenders]  = useState<TenderRow[]>([]);
   const [rba,      setRba]      = useState<RbaRow[]>([]);
   const [freight,  setFreight]  = useState<FreightRow[]>([]);
   const [compat,   setCompat]   = useState<CompatRow[]>([]);
   const [loading,  setLoading]  = useState(true);
+  const [loadErr,  setLoadErr]  = useState<string | null>(null);
   const [tab,      setTab]      = useState<'tender' | 'rba' | 'freight' | 'compat' | 'map'>('tender');
 
   const headers = { Authorization: `Bearer ${apiKey}` };
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [s, t, r, f, c] = await Promise.all([
-      fetch(`${API}/query/summary`,         { headers }).then(x => x.json()),
-      fetch(`${API}/query/tender?limit=20`, { headers }).then(x => x.json()),
-      fetch(`${API}/query/rba?limit=20`,    { headers }).then(x => x.json()),
-      fetch(`${API}/query/freight?limit=12`,{ headers }).then(x => x.json()),
-      fetch(`${API}/query/compat?days=30&limit=100`, { headers }).then(x => x.json()),
-    ]);
-    setSummary(s);
-    setTenders(t.data ?? []);
-    setRba(r.data ?? []);
-    setFreight(f.data ?? []);
-    setCompat(c.data ?? []);
-    setLoading(false);
+    setLoadErr(null);
+    try {
+      const [s, t, r, f, c] = await Promise.all([
+        fetch(`${API}/query/summary`,         { headers }).then(x => x.json()),
+        fetch(`${API}/query/tender?limit=20`, { headers }).then(x => x.json()),
+        fetch(`${API}/query/rba?limit=20`,    { headers }).then(x => x.json()),
+        fetch(`${API}/query/freight?limit=12`,{ headers }).then(x => x.json()),
+        fetch(`${API}/query/compat?days=30&limit=100`, { headers }).then(x => x.json()),
+      ]);
+      setSummary(s);
+      setTenders(t.data ?? []);
+      setRba(r.data ?? []);
+      setFreight(f.data ?? []);
+      setCompat(c.data ?? []);
+    } catch (e) {
+      setLoadErr(`Failed to load data: ${e instanceof Error ? e.message : 'network error'}`);
+    } finally {
+      setLoading(false);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey]);
 
@@ -150,29 +164,45 @@ function Dashboard({ apiKey }: { apiKey: string }) {
           <p className="text-yellow-400 text-xs tracking-widest uppercase">Boreal Iron Heavy</p>
           <h1 className="text-xl font-black">Intelligence Dashboard</h1>
         </div>
-        <button onClick={load} disabled={loading}
-          className="text-xs bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-lg transition disabled:opacity-50">
-          {loading ? 'Loading…' : '↺ Refresh'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={load} disabled={loading}
+            className="text-xs bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-lg transition disabled:opacity-50">
+            {loading ? 'Loading…' : '↺ Refresh'}
+          </button>
+          <button onClick={onSignOut}
+            className="text-xs text-zinc-500 hover:text-zinc-300 px-3 py-2 rounded-lg transition">
+            Sign out
+          </button>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Error banner */}
+        {loadErr && (
+          <div className="bg-red-900/30 border border-red-700/50 text-red-400 text-sm px-4 py-3 rounded-xl">
+            {loadErr}
+          </div>
+        )}
+
+        {/* Summary cards — 2 cols mobile, 5 cols desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard label="Tenders — New" value={summary?.tender.new ?? '…'} sub={`${summary?.tender.total ?? 0} total`} accent />
           <StatCard label="RBA Listings" value={summary?.rba.total ?? '…'} sub={`${summary?.rba.needs_review ?? 0} need review`} />
           <StatCard label="NA West Rate" value={summary?.freight.latest?.scfi_na_west ? fmt(summary.freight.latest.scfi_na_west) : '—'} sub={summary?.freight.latest?.date ?? 'No data'} />
           <StatCard label="Compat (7d)" value={summary?.compat.searches_7d ?? '…'} sub="model searches" />
+          <StatCard label="Live Vessels" value={summary?.vessels.active ?? '…'} sub={summary?.vessels.last_update ? `↺ ${summary.vessels.last_update.slice(11, 16)} UTC` : 'No data'} />
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-zinc-900 rounded-xl p-1 border border-zinc-800">
-          {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${tab === t.key ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-              {t.label}
-            </button>
-          ))}
+        {/* Tabs — overflow-x-auto so 5 tabs don't break on mobile */}
+        <div className="overflow-x-auto">
+          <div className="flex gap-1 bg-zinc-900 rounded-xl p-1 border border-zinc-800 min-w-max">
+            {tabs.map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`py-2 px-3 rounded-lg text-sm font-medium transition whitespace-nowrap ${tab === t.key ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── Tenders tab ── */}
@@ -375,6 +405,11 @@ function Dashboard({ apiKey }: { apiKey: string }) {
 export function IntelDashboardPage() {
   const [apiKey, setApiKey] = useState<string | null>(() => sessionStorage.getItem(STORAGE_KEY));
 
+  const handleSignOut = () => {
+    sessionStorage.removeItem(STORAGE_KEY);
+    setApiKey(null);
+  };
+
   if (!apiKey) return <LoginScreen onAuth={setApiKey} />;
-  return <Dashboard apiKey={apiKey} />;
+  return <Dashboard apiKey={apiKey} onSignOut={handleSignOut} />;
 }
