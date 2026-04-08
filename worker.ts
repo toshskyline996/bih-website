@@ -14,6 +14,7 @@ import { onRequestGet as invUnitsGet, onRequestOptions as invUnitsOpts } from '.
 import { onRequestPost as invInboundPost, onRequestOptions as invInboundOpts } from './functions/api/inventory-inbound';
 import { onRequestPost as invScanPost, onRequestOptions as invScanOpts } from './functions/api/inventory-scan-out';
 import { onRequestGet as invUnitGet, onRequestPatch as invUnitPatch, onRequestOptions as invUnitOpts } from './functions/api/inventory-unit';
+import { onRequestPost as notifyPost, onRequestOptions as notifyOpts } from './functions/api/notify-shipment';
 
 export interface WorkerEnv {
   ASSETS: Fetcher;
@@ -39,6 +40,10 @@ export interface WorkerEnv {
   // public CDN.  This avoids Cloudflare 522 errors that occur when a Worker on
   // the same zone makes a subrequest to another Worker via its custom domain.
   INTEL_API: Fetcher;
+  // Shipment notification system (for Freight Racing integration)
+  RESEND_API_KEY: string;
+  FREIGHT_API_SECRET: string;
+  SHIPMENT_DB: D1Database;
 }
 
 // Pacific bounding box split into two halves to avoid dateline crossing
@@ -211,6 +216,13 @@ export default {
         if (method === 'OPTIONS') return invUnitOpts(c);
         if (method === 'GET')     return invUnitGet(c);
         if (method === 'PATCH')   return invUnitPatch(c);
+        return new Response(null, { status: 405 });
+      }
+
+      // ── Shipment Notification API (Freight Racing integration) ──────────────
+      if (pathname === '/api/notify-shipment') {
+        if (method === 'OPTIONS') return notifyOpts();
+        if (method === 'POST')    return notifyPost(c);
         return new Response(null, { status: 405 });
       }
 

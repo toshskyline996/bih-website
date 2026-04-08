@@ -28,6 +28,11 @@
 			"binding": "INVENTORY_DB",
 			"database_name": "bih-inventory",
 			"database_id": "0f962fcd-9d52-434b-b3ab-c015980f569a"
+		},
+		{
+			"binding": "SHIPMENT_DB",
+			"database_name": "bih-shipments",
+			"database_id": "2e4cd075-af0e-40e4-93a5-32ff722ad875"
 		}
 	],
 	"services": [
